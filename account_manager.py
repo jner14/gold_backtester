@@ -1,0 +1,131 @@
+from pandas import DataFrame
+
+
+class AccountManager(object):
+    """Used to manage a portfolio of stock and cash."""
+
+
+    def __init__(self, start_cap, quote_manager):
+        self._cash = start_cap
+        self._quote_manager = quote_manager
+        self._stock = DataFrame(columns=['qty', 'price'])
+        return super(AccountManager, self).__init__()
+
+
+    def get_account_value(self, date):
+        # For each stock owned sum up the price at date * qty
+        stock_value = 0
+        for symbol in self._stock.index:
+            qty = abs(self._stock.loc[symbol].qty)
+            stock_value += self._quote_manager.get_quote(symbol, date) * qty
+
+        # Return the cash in account plus the sum of stock values 
+        return self._cash + stock_value
+
+
+    def get_percent_account_value(self, date, percent=.05):
+        return self.get_account_value(date) * percent
+
+
+    def get_value_stock(self, symbol):
+        '''Returns the total value of a specified stock.'''
+        return self._stock.price[symbol] * abs(self._stock.qty[symbol])
+
+
+    def get_positions(self):
+        '''Returns a DataFrame copy of all positions held.'''
+        return self._stock.copy()
+
+
+    def get_short_positions(self):
+        '''Returns a DataFrame copy of short positions held.'''
+        return self._stock[self._stock.qty < 0].copy()
+
+
+    def get_long_positions(self):
+        '''Returns a DataFrame copy of long positions held.'''
+        return self._stock[self._stock.qty > 0].copy()
+
+
+    def add_stock(self, symbol, qty, price):
+        if symbol in self._stock.index:
+            qty_owned = self._stock.loc[symbol].qty
+            price_owned = self._stock.loc[symbol].price
+            # TODO: Verify the equation below in debug
+            new_price = (qty_owned * price_owned + qty * price) / (qty_owned + qty)
+        else:
+            qty_owned = 0
+            new_price = price
+        self._stock.loc[symbol] = [qty_owned + qty, new_price]
+
+
+    def remove_stock(self, symbol, qty, price):
+        # Assert we own the stock to be removed
+        assert symbol in self._stock.index, \
+            'ERROR in AccountManager.remove_stock() >>' + \
+            'Symbol: %s is not in account stock: %s' % (symbol, self._stock.index)
+        
+        # Get quantity of stock owned
+        qty_owned = self._stock.loc[symbol].qty
+        
+        # Assert we are only trying to cover short positions or sell long positions
+        assert qty_owned * qty < 0, \
+            'ERROR in AccountManager.remove_stock() >>' + \
+            'qty_owned (%s) and qty to be removed (%s) have identical signs.  ' % (qty_owned, qty) + \
+            'Make sure you are not trying to cover a long or sell a short position.'
+
+        # Assert we are not trying to remove more stock than we own
+        assert abs(qty_owned) >= abs(qty), \
+            'ERROR in AccountManager.remove_stock() >>' + \
+            'qty_owned (%s) is less than qty being removed: %s' % (qty_owned, qty)
+
+        # Adjust stock quantity by passed quantity
+        self._stock.loc[symbol].qty = qty_owned + qty
+
+        # If the quantity owned is equal to that being removed, set price == 0
+        if abs(qty_owned) == abs(qty):
+            self._stock.loc[symbol].price = 0.
+
+
+    def deposit_cash(self, amount):
+        self._cash += amount
+        return True
+
+
+    def withdraw_cash(self, amount):
+        if self._cash >= amount:
+            self._cash -= amount
+            return True
+        else:
+            return False
+
+
+# Used for debugging and development
+if __name__ == '__main__':
+    from quote_manager import QuoteManager
+    qm = QuoteManager('data/daily_gold.db')
+    am = AccountManager(100000., qm)
+
+    am.add_stock('EDV', -20, 100.)
+    print(am.get_account_value('2016_10_17'))
+
+    am.add_stock('ABX', 20, 100.)
+    print(am.get_account_value('2016_10_17'))
+
+    am.remove_stock('ABX', -10)
+    print(am.get_account_value('2016_10_17'))
+
+    print(am._stock.loc['ABX'])
+
+    am.add_stock('ABX', 10, 50.)
+    print(am.get_account_value('2016_10_17'))
+
+    print(am.get_value_stock('ABX'))
+
+    print(am.get_percent_account_value('2016_10_17'))
+
+    print(am.get_long_positions())
+
+    print(am.get_short_positions())
+
+    pass

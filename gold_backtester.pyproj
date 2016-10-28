@@ -22,9 +22,21 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="gbutils.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="data_processing.py" />
     <Compile Include="gold_backtester.py" />
     <Compile Include="google_quotes.py" />
+    <Compile Include="account_manager.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="order_manager.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="quote_manager.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
