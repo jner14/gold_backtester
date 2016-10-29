@@ -38,6 +38,18 @@
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="data\" />
+    <Folder Include="signals\" />
+    <Folder Include="symbols\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="data\daily_gold.db" />
+    <Content Include="data\sqlite3.exe" />
+    <Content Include="signals\signal_data.csv" />
+    <Content Include="symbols\gold_gdx.csv" />
+    <Content Include="symbols\gold_picks.csv" />
+  </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
     <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
