@@ -27,9 +27,9 @@ class AccountManager(object):
         return self.get_account_value(date) * percent
 
 
-    def get_value_stock(self, symbol):
+    def get_position_value(self, symbol, date):
         '''Returns the total value of a specified stock.'''
-        return self._stock.price[symbol] * abs(self._stock.qty[symbol])
+        return self._quote_manager.get_quote(symbol, date) * abs(self._stock.qty[symbol])
 
 
     def get_positions(self):
@@ -42,9 +42,25 @@ class AccountManager(object):
         return self._stock[self._stock.qty < 0].copy()
 
 
+    def get_short_value(self, date):
+        '''Returns a sum of all short positions.'''
+        value = 0
+        for stock in self._stock[self._stock.qty < 0].index:
+            value += self._quote_manager.get_quote(stock, date) * self._stock.qty[stock]
+        return value    
+
+
     def get_long_positions(self):
         '''Returns a DataFrame copy of long positions held.'''
         return self._stock[self._stock.qty > 0].copy()
+
+
+    def get_long_value(self, date):
+        '''Returns a sum of all long positions.'''
+        value = 0
+        for stock in self._stock[self._stock.qty > 0].index:
+            value += self._quote_manager.get_quote(stock, date) * self._stock.qty[stock]
+        return value    
 
 
     def add_stock(self, symbol, qty, price):
@@ -120,7 +136,7 @@ if __name__ == '__main__':
     am.add_stock('ABX', 10, 50.)
     print(am.get_account_value('2016_10_17'))
 
-    print(am.get_value_stock('ABX'))
+    print(am.get_position_value('ABX', '2016_10_17'))
 
     print(am.get_percent_account_value('2016_10_17'))
 

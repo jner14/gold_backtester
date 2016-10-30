@@ -15,16 +15,16 @@ OUTPUT_PATH     = 'output/'
 # Parameters
 REBAL_PERIOD    = 1                         # Number of months between rebalance
 START_BALANCE   = 100000.                   # Starting cash balance in portfolio
-START_DAY       = '2016_01_04'              # Day of initial stock purchases
+START_DAY       = '2008_01_02'              # Day of initial stock purchases  'YYYY_MM_DD'
 COMMISSION      = .005                      # Cost in dollars per share traded
 COMMISSION_MIN  = 1.                        # Minimum cost in dollars per stock traded
 COMMISSION_MAX  = .005                      # Maximum cost in percent of trade value
 SLIPPAGE        = .01                       # Average slippage in price due to market volatility
-# TEMP LINES BELOW
-COMMISSION      = .0                        # Cost in dollars per share traded
-COMMISSION_MIN  = .0                        # Minimum cost in dollars per stock traded
-COMMISSION_MAX  = .0                        # Maximum cost in percent of trade value
-SLIPPAGE        = .0                        # Average slippage in price due to market volatility
+
+#COMMISSION      = .0                        # Cost in dollars per share traded
+#COMMISSION_MIN  = .0                        # Minimum cost in dollars per stock traded
+#COMMISSION_MAX  = .0                        # Maximum cost in percent of trade value
+#SLIPPAGE        = .0                        # Average slippage in price due to market volatility
 
 
 # Create QuoteManager object
@@ -58,16 +58,17 @@ gdx_symbols = gdx_symbols[gdx_symbols.isin(signals.columns)]
 while signal_dates[0] != START_DAY: signal_dates.pop(0)
 
 # Create variables to store data from the backtest to be saved in output folder
-index = ['Portfolio Value', 'Cash'] + \
-        ['Long Position {}'.format(i+1) for i in range(10)] + \
-        ['Short Position {}'.format(i+1) for i in range(10)] + \
-        ['Trade {}'.format(i+1) for i in range(40)] 
+index = ['Portfolio_Value', 'Cash', 'Long_Value', 'Short_Value', 'Long_Return', 'Short_Return'] + \
+        ['Long_Position {}'.format(i+1) for i in range(10)] + \
+        ['Short_Position {}'.format(i+1) for i in range(10)] + \
+        ['Trade_{}'.format(i+1) for i in range(40)] 
 history = pd.DataFrame(index=index)
 
 # Get month close rebalance days determined by REBAL_PERIOD
 rebalance_days = get_rebal_days(signal_dates, REBAL_PERIOD)
 
 # Perform rebalancing every REBAL_PERIOD of months
+old_date = None
 for date in rebalance_days:
 
     print(" "*85 + date)
@@ -100,7 +101,7 @@ for date in rebalance_days:
         if diff_value > current_price:
             order_history[stock] = order_manager.sell(diff_value + current_price, stock, date)
             print('Sold some of %s because its value exceeds 5%% of portfolio' % stock)
-            new_comp = 100.0 * my_account.get_value_stock(stock) / account_value
+            new_comp = 100.0 * my_account.get_position_value(stock, date) / account_value
             print('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
 
     # Cover stock that now appears on undervalued list and that no longer is on gdx list
@@ -124,7 +125,7 @@ for date in rebalance_days:
         if diff_value > current_price:
             order_history[stock] = order_manager.cover(diff_value + current_price, stock, date)
             print('Covered some of %s because its value exceeds 5%% of portfolio' % stock)
-            new_comp = 100.0 * my_account.get_value_stock(stock) / account_value
+            new_comp = 100.0 * my_account.get_position_value(stock, date) / account_value
             print('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
 
     # Buy stock new to undervalued list
@@ -147,7 +148,7 @@ for date in rebalance_days:
         if diff_value > current_price:
             order_history[stock] = order_manager.buy(diff_value, stock, date)
             print('Bought some more of %s because its value falls below 5%% of portfolio' % stock)
-            new_comp = 100.0 * my_account.get_value_stock(stock) / account_value
+            new_comp = 100.0 * my_account.get_position_value(stock, date) / account_value
             print('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
 
     # Short stock that no longer appears on undervalued list that is on gdx list
@@ -170,7 +171,7 @@ for date in rebalance_days:
         if diff_value > current_price:
             order_history[stock] = order_manager.short(diff_value, stock, date)
             print('Shorted some more of %s because its value falls below 5%% of portfolio' % stock)
-            new_comp = 100.0 * my_account.get_value_stock(stock) / account_value
+            new_comp = 100.0 * my_account.get_position_value(stock, date) / account_value
             print('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
     
     # Shift variables for next rebalance
@@ -179,25 +180,59 @@ for date in rebalance_days:
     
     # Store transaction and account data from this rebalance
     long_positions = my_account.get_long_positions().index
-    short_positions = my_account.get_short_positions().index
+    long_value = my_account.get_long_value(date)
 
-    history[date] = [account_value, my_account._cash] + \
-                    [(stock, my_account.get_value_stock(stock)) for stock in long_positions] + \
-                    [(stock, my_account.get_value_stock(stock)) for stock in short_positions] + \
-                    [(stock, order_results) for stock, order_results in order_history.iteritems()] + \
+    short_positions = my_account.get_short_positions().index
+    short_value = my_account.get_short_value(date)
+
+    account_value = my_account.get_account_value(date)
+
+    if old_date != None:
+        old_long_value = history[old_date].Long_Value
+        old_short_value = history[old_date].Short_Value
+        long_return = get_return(long_value, old_long_value)
+        short_return = get_return(short_value, old_short_value)
+    else:
+        long_return = 0
+        short_return = 0
+
+    history[date] = [account_value, my_account._cash, long_value, short_value, long_return, short_return] + \
+                    [(stock, my_account.get_position_value(stock, date)) for stock in long_positions]     + \
+                    [(stock, my_account.get_position_value(stock, date)) for stock in short_positions]    + \
+                    [(stock, order_results) for stock, order_results in order_history.iteritems()]        + \
                     ["" for _ in range(40-len(order_history))]
+    
+    old_date = date
     #my_account.get_positions().qty * [quote_manager.get_quote(stock, date) for stock in my_account.get_positions().index]
     # END REBALANCE CODE
 
 # Handle stored data by saving files and showing graphs
-order_history_df = pd.DataFrame(order_history)
+import time
+import datetime
+timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H-%M-%S'))
+history.to_csv(OUTPUT_PATH + 'history_{}.csv'.format(timestamp))
 
-history.to_csv(OUTPUT_PATH + 'history.csv')
-order_history_df.to_csv(OUTPUT_PATH + 'order_history.csv')
-
-history.loc['Portfolio Value'].cumsum()
+# Display Graphs
+history.loc['Portfolio_Value'].cumsum()
 plt.figure()
-history.loc['Portfolio Value'].plot()
+history.loc['Portfolio_Value'].plot()
 plt.show()
 
-print "Finished!"
+# Calculate Returns
+amlr = (history.loc['Long_Return'].sum() / len(history.loc['Long_Return'])) * 100.0
+amsr = (history.loc['Short_Return'].sum() / len(history.loc['Short_Return'])) * 100.0
+aalr = (12 * history.loc['Long_Return'].sum() / len(history.loc['Long_Return'])) * 100.0
+aasr = (12 * history.loc['Short_Return'].sum() / len(history.loc['Short_Return'])) * 100.0
+tlr  = history.loc['Long_Return'].sum() * 100.0
+tsr  = history.loc['Short_Return'].sum() * 100.0
+
+# Print Returns
+print("\n\n")
+print("Average Monthly Long Return  : {:3f}".format(amlr))
+print("Average Monthly Short Return : {:3f}".format(amsr))
+print("Average Annual Long Return   : {:3f}".format(aalr))
+print("Average Annual Short Return  : {:3f}".format(aasr))
+print("Total Long Return            : {:3f}".format(tlr))
+print("Total Short Return           : {:3f}".format(tsr))
+print("\n\n")
+print("Finished!")

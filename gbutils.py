@@ -95,3 +95,8 @@ def get_rebal_days(whats_left, period):
         rebalance_days.append(whats_now)
 
     return rebalance_days
+
+
+# Get change in value
+def get_return(gains, investment):
+    return (gains - investment) / investment
