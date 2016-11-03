@@ -15,7 +15,7 @@ OUTPUT_PATH     = 'output/'
 # Parameters
 REBAL_PERIOD    = 1                         # Number of months between rebalance
 START_BALANCE   = 100000.                   # Starting cash balance in portfolio
-START_DAY       = '2008_01_02'              # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04'
+START_DAY       = '2016_01_04'              # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02' 
 COMMISSION      = .005                      # Cost in dollars per share traded
 COMMISSION_MIN  = 1.                        # Minimum cost in dollars per stock traded
 COMMISSION_MAX  = .005                      # Maximum cost in percent of trade value

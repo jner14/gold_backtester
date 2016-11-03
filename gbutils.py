@@ -98,5 +98,5 @@ def get_rebal_days(whats_left, period):
 
 
 # Get change in value
-def get_return(gains, investment):
-    return (gains - investment) / investment
+def get_return(new_value, old_value):
+    return new_value / old_value - 1
