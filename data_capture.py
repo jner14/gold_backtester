@@ -245,11 +245,11 @@ class DailyQuotes(Ticker):
                  start_date=datetime.datetime(1970,1,1),
                  end_date=datetime.date.today().isoformat(),
                  source='yahoo',
-                 db_path='data/daily.db'):
+                 db_path='data/daily_gold.db'):
                      
         super(DailyQuotes,self).__init__()
         self.symbol = symbol.upper()
-        self.db_path = 'data/daily.db'
+        self.db_path = 'data/daily_gold.db'
         if type(start_date) == datetime.date:
             start = start_date
         else:
@@ -367,7 +367,29 @@ def download_latest_quotes(type_='daily', time_frame=360):
 #download_latest_quotes('daily', 180)
 #download_latest_quotes('minutes')
 
-#if __name__ == '__main__':
-##    print("google_quotes loaded")
-#    t1 = Ticker()
-#    t1 = DailyQuotes('A','2014-03-01')
+if __name__ == '__main__':
+    #from data_processing import load_tickers
+    #db_path = 'data/daily_gold.db'
+    #ticker_path = 'symbols/gold_picks.csv'
+    ##ticker_path = 'symbols/gold_gdx.csv'
+
+    #tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=ticker_path, min_samples=1)
+
+    #print "Downloading Stock Prices!"
+    #for symbol in tickers:
+    #    t1 = DailyQuotes(symbol     = symbol,
+    #                     start_date = '2007-09-23',  # '2007-01-01', 
+    #                     db_path    = db_path)
+
+    #    print("%s: %s" % (symbol, len(t1.date)))
+
+    #    if len(t1.date) > 1: 
+    #        t1.overwrite_db()
+    #        print "Updated database %s with table for symbol %s" % (db_path, symbol)
+
+
+    ### A DailyQuotes object downloads quote data from yahoo during init
+    ##t1 = DailyQuotes('SPY','2007-01-01')
+    ##t1.overwrite_db()
+
+    print("DONE")

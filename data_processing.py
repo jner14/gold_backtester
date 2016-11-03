@@ -145,7 +145,7 @@ def check_missing_dates(db_path,ticker,print_res=True):
                 if print_res: print(i, year, month, day, dow)
     if print_res: print("Total Missing %s" % missing_int)
     return missing
-#missing = check_missing_dates('data/daily.db','A')
+#missing = check_missing_dates('data/daily_gold.db','A')
     
 def check_erratic_values(db_path,ticker,print_res=True,erratic_index=10):
     '''Checks for missing values and drastic changes from one quote to the next'''
@@ -179,7 +179,7 @@ def check_erratic_values(db_path,ticker,print_res=True,erratic_index=10):
             
     if print_res: print("Total Erratics %s" % erratic_cnt)
     return erratics
-#erratics = check_erratic_values('data/daily.db','A',erratic_index=40)
+#erratics = check_erratic_values('data/daily_gold.db','A',erratic_index=40)
     
 def check_missing_dates_from_list(db_name='daily'):
     missing = []
@@ -224,7 +224,7 @@ def convert_csv_to_db(time_cat, db_name,intraday=True):
             print("no csv found..."),
         print("COMPLETE!!")
     print("These were not converted: %s" % empties)
-#convert_csv_to_db('daily','data/daily.db',False)
+#convert_csv_to_db('daily','data/daily_gold.db',False)
 #convert_csv_to_db('minutes_1','data/minutes_1.db',True)
 
 def getRandoms(testSetLength, randomizeTraining):

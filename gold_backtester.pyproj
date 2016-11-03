@@ -32,7 +32,6 @@
     </Compile>
     <Compile Include="data_processing.py" />
     <Compile Include="gold_backtester.py" />
-    <Compile Include="google_quotes.py" />
     <Compile Include="account_manager.py">
       <SubType>Code</SubType>
     </Compile>

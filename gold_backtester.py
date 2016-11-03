@@ -21,10 +21,10 @@ COMMISSION_MIN  = 1.                        # Minimum cost in dollars per stock 
 COMMISSION_MAX  = .005                      # Maximum cost in percent of trade value
 SLIPPAGE        = .01                       # Average slippage in price due to market volatility
 
-COMMISSION      = .0                        # Cost in dollars per share traded
-COMMISSION_MIN  = .0                        # Minimum cost in dollars per stock traded
-COMMISSION_MAX  = .0                        # Maximum cost in percent of trade value
-SLIPPAGE        = .0                        # Average slippage in price due to market volatility
+#COMMISSION      = .0                        # Cost in dollars per share traded
+#COMMISSION_MIN  = .0                        # Minimum cost in dollars per stock traded
+#COMMISSION_MAX  = .0                        # Maximum cost in percent of trade value
+#SLIPPAGE        = .0                        # Average slippage in price due to market volatility
 
 
 # Create QuoteManager object
@@ -221,9 +221,14 @@ timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_
 history.to_csv(OUTPUT_PATH + 'history_{}.csv'.format(timestamp))
 
 # Display Graphs
-history.loc['Portfolio_Value'].cumsum()
+spy_quotes = [quote_manager.get_quote('SPY', date) for date in history.columns]
+multiplier = START_BALANCE / spy_quotes[0]
+spy_quotes = [multiplier * price for price in spy_quotes]
+data_to_plot = pd.DataFrame()
+data_to_plot['Portfolio_Value'] = history.loc['Portfolio_Value']
+data_to_plot['SPY'            ] = spy_quotes
 plt.figure()
-history.loc['Portfolio_Value'].plot()
+data_to_plot.plot()
 plt.show()
 
 # Calculate Returns
