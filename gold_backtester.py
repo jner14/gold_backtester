@@ -83,6 +83,23 @@ for date in rebalance_days:
     # Get top gdx stock excluding undervalued_stock for current date
     new_top_gdx = get_top_gdx(gdx_symbols, quote_manager, new_undervalued)
     
+    # Get positions for calculating unrealized returns
+    long_positions = my_account.get_long_positions().index
+    long_value = my_account.get_long_value(date)
+
+    short_positions = my_account.get_short_positions().index
+    short_value = my_account.get_short_value(date)
+
+    # Get unrealized returns
+    if old_date != None:
+        old_long_value = history[old_date].Long_Value
+        old_short_value = history[old_date].Short_Value
+        long_return = get_return(long_value, old_long_value)
+        short_return = get_return(short_value, old_short_value)
+    else:
+        long_return = 0
+        short_return = 0
+    
     # Sell stock no longer on undervalued list
     long_positions = my_account.get_long_positions()
     for stock in long_positions.index:
@@ -186,15 +203,6 @@ for date in rebalance_days:
     short_value = my_account.get_short_value(date)
 
     account_value = my_account.get_account_value(date)
-
-    if old_date != None:
-        old_long_value = history[old_date].Long_Value
-        old_short_value = history[old_date].Short_Value
-        long_return = get_return(long_value, old_long_value)
-        short_return = get_return(short_value, old_short_value)
-    else:
-        long_return = 0
-        short_return = 0
 
     history[date] = [account_value, my_account._cash, long_value, short_value, long_return, short_return] + \
                     [(stock, my_account.get_position_value(stock, date)) for stock in long_positions]     + \

@@ -12,6 +12,8 @@
     <OutputPath>.</OutputPath>
     <Name>gold_backtester</Name>
     <RootNamespace>gold_backtester</RootNamespace>
+    <InterpreterId>{9a7a9026-48c1-4688-9d5d-e5699d47d074}</InterpreterId>
+    <InterpreterVersion>2.7</InterpreterVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -50,6 +52,9 @@
     <Content Include="signals\signal_data.csv" />
     <Content Include="symbols\gold_gdx.csv" />
     <Content Include="symbols\gold_picks.csv" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="{9a7a9026-48c1-4688-9d5d-e5699d47d074}\2.7" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
