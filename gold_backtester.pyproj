@@ -24,6 +24,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="data_capture.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="gbutils.py">
       <SubType>Code</SubType>
     </Compile>

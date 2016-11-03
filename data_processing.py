@@ -317,14 +317,3 @@ if __name__ == '__main__':
 
     picks, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=ticker_path1, min_samples=1)
     gdx, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=ticker_path2, min_samples=1)
-
-    diff1 = (set(picks) - set(gdx))
-    diff2 = (set(gdx) - set(picks))
-    
-    print "DIFF1\n*****"
-    for d1 in diff1:
-        print(d1)
-        
-    print "\nDIFF2\n*****"
-    for d2 in diff2:
-        print(d2) 

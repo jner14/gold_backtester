@@ -1,4 +1,4 @@
-from pandas import DataFrame
+from pandas import DataFrame, Series
 from gbutils import *
 
 
@@ -45,17 +45,13 @@ class AccountManager(object):
 
     def get_short_value(self, date):
         '''Returns a sum of all short positions.'''
-        # TODO: check that average price is also correct
-        shorts = self._stock[self._stock.qty < 0]
-        original_value = shorts.price * shorts.qty
-        current_price_qty = DataFrame(columns=['price'])
-        current_price_qty.price = {stock: self._quote_manager.get_quote(stock, date) for stock in shorts.index}
-        return1 = -1* (current_price_qty / original_value) -1  #(-10 / -20) * -1 = 50%
-        return (1 + return1) * original_value  # (1 + .25) * 10 = 12.5    (1+ -.25) * 10 = 7.5
-        #value = 0
-        #for stock in self._stock[self._stock.qty < 0].index:
-        #    value += self._quote_manager.get_quote(stock, date) * self._stock.qty[stock]
-        #return value    
+        shorts = self._stock[self._stock.qty < 0].copy()
+        shorts['original_value'   ] = shorts.price * shorts.qty
+        shorts['current_price'    ] = [self._quote_manager.get_quote(stock, date) for stock in shorts.index]
+        shorts['current_price_qty'] = shorts.current_price * shorts.qty
+        shorts['returns'          ] = ((shorts.current_price_qty / shorts.original_value) - 1) * -1
+        shorts['value'            ] = (1 + shorts.returns) * shorts.original_value
+        return shorts.value.sum()
 
 
     def get_long_positions(self):
