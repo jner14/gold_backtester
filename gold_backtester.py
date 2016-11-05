@@ -152,9 +152,9 @@ for date in rebalance_days:
     # Buy stock new to undervalued list
     long_positions = my_account.get_long_positions()
     for stock in new_undervalued.index:
-        account_value = my_account.get_account_value(date)
-        five_percent_account = .05 * account_value
         if stock not in long_positions.index:
+            account_value = my_account.get_account_value(date)
+            five_percent_account = .05 * account_value
             order_history[stock] = order_manager.buy(five_percent_account, stock, date)
             print('Bought %s because it is now on the undervalued list' % stock)
 
