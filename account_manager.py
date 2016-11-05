@@ -24,6 +24,10 @@ class AccountManager(object):
         return self._margin_percent
 
 
+    def get_cash_value(self):
+        return self._cash
+
+
     def get_account_value(self, date):
         # For each stock owned sum up the price at date * qty
         stock_value = 0

@@ -78,6 +78,7 @@ for date in rebalance_days:
     # Get total and 5 percent of account value
     account_value = my_account.get_account_value(date)
     five_percent_account = .05 * account_value
+    cash = my_account.get_cash_value()
 
     # Get margin value
     margin_value = account_value * MARGIN_PERCENT/100.
@@ -207,7 +208,7 @@ for date in rebalance_days:
 
     account_value = my_account.get_account_value(date)
 
-    history[date] = [account_value, my_account._cash, long_value, short_value, long_return, short_return] + \
+    history[date] = [account_value, cash, long_value, short_value, long_return, short_return]             + \
                     [(stock, my_account.get_position_value(stock, date)) for stock in long_positions]     + \
                     [(stock, my_account.get_position_value(stock, date)) for stock in short_positions]    + \
                     [(stock, order_results) for stock, order_results in order_history.iteritems()]        + \
