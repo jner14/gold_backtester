@@ -186,9 +186,9 @@ for date in rebalance_days:
             new_comp = 100.0 * my_account.get_position_value(stock, date) / account_value
             print('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
 
-    # Short stock that no longer appears on undervalued list that is on gdx list
+    # vShort stock that no longer appears on undervalued list that is on gdx list
     short_positions = my_account.get_short_positions()
-    for stock in new_top_gdx:
+    for stock in new_top_gdx.values:
         account_value = my_account.get_account_value(date)
         five_percent_account = .05 * account_value
         if stock not in short_positions.index:
