@@ -45,7 +45,18 @@ class AccountManager(object):
 
     def get_position_value(self, symbol, date):
         '''Returns the total value of a specified stock.'''
-        return self._quote_manager.get_quote(symbol, date) * abs(self._stock.qty[symbol])
+        if self._stock.qty[symbol] > 0:
+            return self._quote_manager.get_quote(symbol, date) * abs(self._stock.qty[symbol])
+        else:
+            shorts = self._stock[self._stock.qty < 0].copy()
+            shorts['original_value'   ] = shorts.price * shorts.qty
+            shorts['current_price'    ] = [self._quote_manager.get_quote(stock, date) for stock in shorts.index]
+            shorts['current_price_qty'] = shorts.current_price * shorts.qty
+            shorts['returns'          ] = ((shorts.current_price_qty / shorts.original_value) - 1) * -1
+            shorts['value'            ] = (1 + shorts.returns) * shorts.original_value
+            return -shorts.value[symbol]
+        #'''Returns the total value of a specified stock.'''
+        #return self._quote_manager.get_quote(symbol, date) * abs(self._stock.qty[symbol])
 
 
     def get_positions(self):
