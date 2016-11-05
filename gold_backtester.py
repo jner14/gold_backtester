@@ -69,7 +69,8 @@ history = pd.DataFrame(index=index)
 rebalance_days = get_rebal_days(signal_dates, REBAL_PERIOD)
 
 # Perform rebalancing every REBAL_PERIOD of months
-old_date = None
+old_date        = None
+old_long_value  = None
 for date in rebalance_days:
 
     print(" "*85 + date)
@@ -95,9 +96,7 @@ for date in rebalance_days:
     short_value = my_account.get_short_value(date)
 
     # Get unrealized returns
-    if old_date != None and history[old_date].Long_Value != 0:
-        old_long_value = history[old_date].Long_Value
-        old_short_value = history[old_date].Short_Value
+    if old_long_value != None:
         long_return = get_return(long_value, old_long_value)
         short_return = get_return(short_value, old_short_value)
     else:
@@ -201,8 +200,10 @@ for date in rebalance_days:
     
     # Store transaction and account data from this rebalance
     long_positions = my_account.get_long_positions().index
+    old_long_value = my_account.get_long_value(date)
 
     short_positions = my_account.get_short_positions().index
+    old_short_value = my_account.get_short_value(date)
 
     account_value = my_account.get_account_value(date)
 
