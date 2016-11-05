@@ -172,15 +172,6 @@ for date in rebalance_days:
             new_comp = 100.0 * my_account.get_position_value(stock, date) / account_value
             print('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
 
-    # Short stock that no longer appears on undervalued list that is on gdx list
-    short_positions = my_account.get_short_positions()
-    for stock in new_top_gdx:
-        account_value = my_account.get_account_value(date)
-        five_percent_account = .05 * account_value
-        if stock not in short_positions.index:
-            order_history[stock] = order_manager.short(five_percent_account, stock, date)
-            print('Shorted %s because it is now on the gdx list' % stock)
-
     # Short more of stock on gdx list that is below 5% of account value 
     short_positions = my_account.get_short_positions()
     for stock in short_positions.index:
@@ -194,6 +185,15 @@ for date in rebalance_days:
             print('Shorted some more of %s because its value falls below 5%% of portfolio' % stock)
             new_comp = 100.0 * my_account.get_position_value(stock, date) / account_value
             print('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
+
+    # Short stock that no longer appears on undervalued list that is on gdx list
+    short_positions = my_account.get_short_positions()
+    for stock in new_top_gdx:
+        account_value = my_account.get_account_value(date)
+        five_percent_account = .05 * account_value
+        if stock not in short_positions.index:
+            order_history[stock] = order_manager.short(five_percent_account, stock, date)
+            print('Shorted %s because it is now on the gdx list' % stock)
     
     # Shift variables for next rebalance
     undervalued_stock = new_undervalued
