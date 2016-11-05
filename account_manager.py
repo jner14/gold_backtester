@@ -6,11 +6,22 @@ class AccountManager(object):
     """Used to manage a portfolio of stock and cash."""
 
 
-    def __init__(self, start_cap, quote_manager):
+    def __init__(self, start_cap, margin_percent, quote_manager):
         self._cash = start_cap
+        self._margin_percent = margin_percent
         self._quote_manager = quote_manager
         self._stock = DataFrame(columns=['qty', 'price'])
         return super(AccountManager, self).__init__()
+
+
+    def get_margin_value(self, date):
+        return self.get_account_value() * self._margin_percent/100
+    # what if on covers and sells we multiply the gains by the margin percent
+    # what if we keep track of amounts borrowed per stock and pay the borrow amount down before returning rest to account
+
+
+    def get_margin_percent(self):
+        return self._margin_percent
 
 
     def get_account_value(self, date):

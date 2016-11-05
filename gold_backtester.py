@@ -15,6 +15,7 @@ OUTPUT_PATH     = 'output/'
 # Parameters
 REBAL_PERIOD    = 1                         # Number of months between rebalance
 START_BALANCE   = 100000.                   # Starting cash balance in portfolio
+MARGIN_PERCENT  = 100.                      # The margin account size as a percent of account value
 START_DAY       = '2008_01_02'              # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
 COMMISSION      = .005                      # Cost in dollars per share traded
 COMMISSION_MIN  = 1.                        # Minimum cost in dollars per stock traded
@@ -31,7 +32,7 @@ SLIPPAGE        = .01                       # Average slippage in price due to m
 quote_manager = QuoteManager(DB_FILEPATH)
 
 # Create AccountManager object
-my_account = AccountManager(START_BALANCE, quote_manager)
+my_account = AccountManager(START_BALANCE, MARGIN_PERCENT, quote_manager)
 
 # Create OrderManager object
 order_manager = OrderManager(quote_manager, 
@@ -77,6 +78,9 @@ for date in rebalance_days:
     account_value = my_account.get_account_value(date)
     five_percent_account = .05 * account_value
 
+    # Get margin value
+    margin_value = account_value * MARGIN_PERCENT/100.
+
     # Get undervalued_stock for current date
     new_undervalued = get_undervalued(signals, date, quote_manager)
 
@@ -91,7 +95,7 @@ for date in rebalance_days:
     short_value = my_account.get_short_value(date)
 
     # Get unrealized returns
-    if old_date != None:
+    if old_date != None and history[old_date].Long_Value != 0:
         old_long_value = history[old_date].Long_Value
         old_short_value = history[old_date].Short_Value
         long_return = get_return(long_value, old_long_value)
@@ -197,10 +201,8 @@ for date in rebalance_days:
     
     # Store transaction and account data from this rebalance
     long_positions = my_account.get_long_positions().index
-    long_value = my_account.get_long_value(date)
 
     short_positions = my_account.get_short_positions().index
-    short_value = my_account.get_short_value(date)
 
     account_value = my_account.get_account_value(date)
 
@@ -220,17 +222,6 @@ import datetime
 timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H-%M-%S'))
 history.to_csv(OUTPUT_PATH + 'history_{}.csv'.format(timestamp))
 
-# Display Graphs
-spy_quotes = [quote_manager.get_quote('SPY', date) for date in history.columns]
-multiplier = START_BALANCE / spy_quotes[0]
-spy_quotes = [multiplier * price for price in spy_quotes]
-data_to_plot = pd.DataFrame()
-data_to_plot['Portfolio_Value'] = history.loc['Portfolio_Value']
-data_to_plot['SPY'            ] = spy_quotes
-plt.figure()
-data_to_plot.plot()
-plt.show()
-
 # Calculate Returns
 amlr = (history.loc['Long_Return'].sum() / len(history.loc['Long_Return'])) * 100.0
 amsr = (history.loc['Short_Return'].sum() / len(history.loc['Short_Return'])) * 100.0
@@ -249,3 +240,14 @@ print("Total Long Return            : {0:.2f}%".format(tlr))
 print("Total Short Return           : {0:.2f}%".format(tsr))
 print("\n\n")
 print("Finished!")
+
+# Display Graphs
+spy_quotes = [quote_manager.get_quote('SPY', date) for date in history.columns]
+multiplier = START_BALANCE / spy_quotes[0]
+spy_quotes = [multiplier * price for price in spy_quotes]
+data_to_plot = pd.DataFrame()
+data_to_plot['Portfolio_Value'] = history.loc['Portfolio_Value']
+data_to_plot['SPY'            ] = spy_quotes
+plt.figure()
+data_to_plot.plot()
+plt.show()
