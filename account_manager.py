@@ -55,8 +55,6 @@ class AccountManager(object):
             shorts['returns'          ] = ((shorts.current_price_qty / shorts.original_value) - 1) * -1
             shorts['value'            ] = (1 + shorts.returns) * shorts.original_value
             return -shorts.value[symbol]
-        #'''Returns the total value of a specified stock.'''
-        #return self._quote_manager.get_quote(symbol, date) * abs(self._stock.qty[symbol])
 
 
     def get_positions(self):

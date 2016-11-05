@@ -117,7 +117,6 @@ for date in rebalance_days:
         account_value = my_account.get_account_value(date)
         five_percent_account = .05 * account_value
         current_price = quote_manager.get_quote(stock, date)
-        #value = current_price * abs(long_positions.qty[stock])
         value = abs(my_account.get_position_value(stock, date))
         diff_value = value - five_percent_account
         if diff_value > current_price:
@@ -142,7 +141,6 @@ for date in rebalance_days:
         account_value = my_account.get_account_value(date)
         five_percent_account = .05 * account_value
         current_price = quote_manager.get_quote(stock, date)
-        #value = current_price * abs(short_positions.qty[stock])
         value = abs(my_account.get_position_value(stock, date))
         diff_value = value - five_percent_account
         if diff_value > current_price:
@@ -166,7 +164,6 @@ for date in rebalance_days:
         account_value = my_account.get_account_value(date)
         five_percent_account = .05 * account_value
         current_price = quote_manager.get_quote(stock, date)
-        #value = current_price * abs(long_positions.qty[stock])
         value = abs(my_account.get_position_value(stock, date))
         diff_value = five_percent_account - value
         if diff_value > current_price:
@@ -190,7 +187,6 @@ for date in rebalance_days:
         account_value = my_account.get_account_value(date)
         five_percent_account = .05 * account_value
         current_price = quote_manager.get_quote(stock, date)
-        #value = current_price * abs(short_positions.qty[stock])
         value = abs(my_account.get_position_value(stock, date))
         diff_value = five_percent_account - value
         if diff_value > current_price:
