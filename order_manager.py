@@ -79,10 +79,16 @@ class OrderManager(object):
         while not succeeded:
             shares_value = order_qty * price
             commission_total = max((self.commission * order_qty), self.commission_min)
-            if commission_total > 1.:
+            if commission_total > self.commission_min:
                 commission_total = min(commission_total, self.commission_max * shares_value)
                 
-            transfer_amt = commission_total * fee_multiplier + shares_value
+            if order_type == 'cover':
+                cover_slip = order_qty * self.slippage
+                transfer_amt = (cover_slip + commission_total) * fee_multiplier + self.account.get_position_value(symbol, date)
+            else:
+                transfer_amt = commission_total * fee_multiplier + shares_value
+
+            # If the fees and slippage are too much reduce order quantity and recalculate
             if order_amt != None and transfer_amt > order_amt:
                 order_qty -= 1
                 continue

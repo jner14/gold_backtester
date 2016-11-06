@@ -98,8 +98,5 @@ def get_rebal_days(whats_left, period):
 
 
 # Get change in value
-def get_return(new_value, old_value):
-    if new_value < 0 and old_value < 0:
-        return -1 * (new_value / old_value - 1)
-    else:    
-        return new_value / old_value - 1
+def get_return(new_value, old_value): 
+    return new_value / old_value - 1

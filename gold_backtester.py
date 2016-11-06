@@ -103,6 +103,7 @@ for date in rebalance_days:
         #my_account.deposit_cash(margin_gains)
 
         # Calculate long and short returns
+        # TODO: correct old_long_value as it is prerebalancing and needs to be post
         long_return = get_return(long_value, old_long_value)
         #long_return *= MARGIN_PERCENT/100. + 1.
         short_return = get_return(short_value, old_short_value)
