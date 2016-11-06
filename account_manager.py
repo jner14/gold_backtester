@@ -29,14 +29,7 @@ class AccountManager(object):
 
 
     def get_account_value(self, date):
-        # For each stock owned sum up the price at date * qty
-        stock_value = 0
-        for symbol in self._stock.index:
-            qty = abs(self._stock.loc[symbol].qty)
-            stock_value += self._quote_manager.get_quote(symbol, date) * qty
-
-        # Return the cash in account plus the sum of stock values 
-        return self._cash + stock_value
+        return self._cash + self.get_long_value(date) + abs(self.get_short_value(date))
 
 
     def get_percent_account_value(self, date, percent=.05):
