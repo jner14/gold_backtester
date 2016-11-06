@@ -368,24 +368,24 @@ def download_latest_quotes(type_='daily', time_frame=360):
 #download_latest_quotes('minutes')
 
 if __name__ == '__main__':
-    #from data_processing import load_tickers
-    #db_path = 'data/daily_gold.db'
-    #ticker_path = 'symbols/gold_picks.csv'
-    ##ticker_path = 'symbols/gold_gdx.csv'
+    from data_processing import load_tickers
+    db_path = 'data/daily_gold.db'
+    ticker_path = 'symbols/gold_picks.csv'
+    #ticker_path = 'symbols/gold_gdx.csv'
 
-    #tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=ticker_path, min_samples=1)
+    tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=ticker_path, min_samples=1)
 
-    #print "Downloading Stock Prices!"
-    #for symbol in tickers:
-    #    t1 = DailyQuotes(symbol     = symbol,
-    #                     start_date = '2007-09-23',  # '2007-01-01', 
-    #                     db_path    = db_path)
+    print "Downloading Stock Prices!"
+    for symbol in tickers:
+        t1 = DailyQuotes(symbol     = symbol,
+                         start_date = '2007-09-23',  # '2007-01-01', 
+                         db_path    = db_path)
 
-    #    print("%s: %s" % (symbol, len(t1.date)))
+        print("%s: %s" % (symbol, len(t1.date)))
 
-    #    if len(t1.date) > 1: 
-    #        t1.overwrite_db()
-    #        print "Updated database %s with table for symbol %s" % (db_path, symbol)
+        if len(t1.date) > 1: 
+            t1.overwrite_db()
+            print "Updated database %s with table for symbol %s" % (db_path, symbol)
 
 
     ### A DailyQuotes object downloads quote data from yahoo during init

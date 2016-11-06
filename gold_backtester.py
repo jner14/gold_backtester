@@ -44,7 +44,6 @@ order_manager = OrderManager(quote_manager,
                              )
 
 # Create an order_history DataFrame
-#order_history = pd.DataFrame(columns=['qty', 'price', 'cost'])
 order_history = {}
 
 # Load signals data
@@ -73,8 +72,9 @@ old_date        = None
 old_long_value  = None
 for date in rebalance_days:
 
-    print(" "*85 + date)
-
+    print(" "*60 + date)
+    if date == '2009_05_29':
+        pass
     # Get total and 5 percent of account value
     pre_account_value = my_account.get_account_value(date)
     cash = my_account.get_cash_value()
@@ -111,6 +111,14 @@ for date in rebalance_days:
     else:
         long_return = 0
         short_return = 0
+        
+    history[date] = [pre_account_value, cash, long_value, short_value, long_return, short_return]         + \
+                    [(stock, my_account.get_position_value(stock, date)) for stock in long_positions]     + \
+                    ["" for _ in range(10-len(long_positions))]                                           + \
+                    [(stock, my_account.get_position_value(stock, date)) for stock in short_positions]    + \
+                    ["" for _ in range(10-len(short_positions))]                                          + \
+                    [(stock, order_results) for stock, order_results in order_history.iteritems()]        + \
+                    ["" for _ in range(40-len(order_history))]
     
     # Sell stock no longer on undervalued list
     long_positions = my_account.get_long_positions()
@@ -210,20 +218,11 @@ for date in rebalance_days:
     top_gdx = new_top_gdx
     
     # Store transaction and account data from this rebalance
-    long_positions = my_account.get_long_positions().index
     old_long_value = my_account.get_long_value(date)
 
-    short_positions = my_account.get_short_positions().index
     old_short_value = my_account.get_short_value(date)
-
-    history[date] = [pre_account_value, cash, long_value, short_value, long_return, short_return]             + \
-                    [(stock, my_account.get_position_value(stock, date)) for stock in long_positions]     + \
-                    [(stock, my_account.get_position_value(stock, date)) for stock in short_positions]    + \
-                    [(stock, order_results) for stock, order_results in order_history.iteritems()]        + \
-                    ["" for _ in range(40-len(order_history))]
     
     old_date = date
-    #my_account.get_positions().qty * [quote_manager.get_quote(stock, date) for stock in my_account.get_positions().index]
     # END REBALANCE CODE
 
 # Handle stored data by saving files and showing graphs
