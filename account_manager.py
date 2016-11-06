@@ -75,6 +75,7 @@ class AccountManager(object):
         shorts['current_price_qty'] = shorts.current_price * shorts.qty
         shorts['returns'          ] = ((shorts.current_price_qty / shorts.original_value) - 1) * -1
         shorts['value'            ] = (1 + shorts.returns) * shorts.original_value
+        # TODO: should this value be returned times -1 so that it is positive?
         return shorts.value.sum()
 
 

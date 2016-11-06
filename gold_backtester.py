@@ -76,12 +76,11 @@ for date in rebalance_days:
     print(" "*85 + date)
 
     # Get total and 5 percent of account value
-    account_value = my_account.get_account_value(date)
-    five_percent_account = .05 * account_value
+    pre_account_value = my_account.get_account_value(date)
     cash = my_account.get_cash_value()
 
     # Get margin value
-    margin_value = account_value * MARGIN_PERCENT/100.
+    margin_value = pre_account_value * MARGIN_PERCENT/100.
 
     # Get undervalued_stock for current date
     new_undervalued = get_undervalued(signals, date, quote_manager)
@@ -98,8 +97,16 @@ for date in rebalance_days:
 
     # Get unrealized returns
     if old_long_value != None:
+
+        # Add margin returns
+        margin_gains = long_value - old_long_value + abs(short_value) - abs(old_short_value)
+        #my_account.deposit_cash(margin_gains)
+
+        # Calculate long and short returns
         long_return = get_return(long_value, old_long_value)
+        #long_return *= MARGIN_PERCENT/100. + 1.
         short_return = get_return(short_value, old_short_value)
+        #short_return *= MARGIN_PERCENT/100. + 1.
     else:
         long_return = 0
         short_return = 0
@@ -134,7 +141,8 @@ for date in rebalance_days:
         elif stock not in new_top_gdx:
             order_history[stock] = order_manager.cover_all(stock, date)
             print('Covered %s because it is no longer on gdx list' % stock)
-
+            
+    #TODO: This rebalance action is not working, find out why
     # Cover portion of stock on gdx list that exceeds 5% of account value
     short_positions = my_account.get_short_positions()
     for stock in short_positions.index:
@@ -172,7 +180,8 @@ for date in rebalance_days:
             new_comp = 100.0 * my_account.get_position_value(stock, date) / account_value
             print('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
 
-    # Short more of stock on gdx list that is below 5% of account value 
+    #TODO: This rebalance action is not working, find out why
+    # Short more of stock on gdx list that is below 5% of account value
     short_positions = my_account.get_short_positions()
     for stock in short_positions.index:
         account_value = my_account.get_account_value(date)
@@ -206,9 +215,7 @@ for date in rebalance_days:
     short_positions = my_account.get_short_positions().index
     old_short_value = my_account.get_short_value(date)
 
-    account_value = my_account.get_account_value(date)
-
-    history[date] = [account_value, cash, long_value, short_value, long_return, short_return]             + \
+    history[date] = [pre_account_value, cash, long_value, short_value, long_return, short_return]             + \
                     [(stock, my_account.get_position_value(stock, date)) for stock in long_positions]     + \
                     [(stock, my_account.get_position_value(stock, date)) for stock in short_positions]    + \
                     [(stock, order_results) for stock, order_results in order_history.iteritems()]        + \
