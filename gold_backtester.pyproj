@@ -41,6 +41,7 @@
     <Compile Include="quote_manager.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="sphold.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="data\" />

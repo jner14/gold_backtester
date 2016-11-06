@@ -243,3 +243,4 @@ ModelManifest.xml
 *.pyc
 /output
 /env
+/sphold.py
