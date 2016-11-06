@@ -5,7 +5,7 @@ from pandas import DataFrame, read_sql_query
 class QuoteManager(object):
     """Interacts with database of stock prices."""
 
-    QUOTE_TYPES = ['Open', 'Close', 'High', 'Low', 'Volume']
+    QUOTE_TYPES = ['Open', 'Close', 'High', 'Low', 'Volume', 'Adj_Close']
 
 
     def __init__(self, db_path):
@@ -27,7 +27,7 @@ class QuoteManager(object):
         return super(QuoteManager, self).__init__()
 
 
-    def get_quote(self, symbol, date, type='Close'):
+    def get_quote(self, symbol, date, type='Adj_Close'):
         # Assert that the quote type passed is valid
         assert type in self.QUOTE_TYPES, \
             "ERROR in QuoteManager.get_quote() >> %s is not in %s" % (type, self.QUOTE_TYPES)

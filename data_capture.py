@@ -140,7 +140,7 @@ class Ticker(object):
             stockvalues = tuple(stockvalues)
             cur = con.cursor()
             cur.execute("DROP TABLE IF EXISTS %s" % ticker)
-            cur.execute("CREATE TABLE %s(Datetime INT, Open REAL, Close REAL, High REAL, Low REAL, Volume INT, adj_close REAL)" % ticker)
+            cur.execute("CREATE TABLE %s(Datetime INT, Open REAL, Close REAL, High REAL, Low REAL, Volume INT, Adj_Close REAL)" % ticker)
             sqlite_string = "INSERT INTO %s VALUES(?, ?, ?, ?, ?, ?, ?)" % ticker
             cur.executemany(sqlite_string, stockvalues)
             
@@ -374,6 +374,7 @@ if __name__ == '__main__':
     db_path = 'data/daily_gold.db'
     picks_path = 'symbols/gold_picks.csv'
     gdx_path = 'symbols/gold_gdx.csv'
+    create_db_from_scratch = True
 
     picks_tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=picks_path, min_samples=1)
     gdx_tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=gdx_path, min_samples=1)
@@ -382,14 +383,18 @@ if __name__ == '__main__':
     print "Downloading Stock Prices!"
     for symbol in all_tickers:
         t1 = DailyQuotes(symbol     = symbol,
-                         start_date = '2016-11-1',  # '2007-01-01', 
+                         start_date = '2007-09-23',  # '2007-09-23'  '2016-11-1'
                          db_path    = db_path)
 
         print("%s: %s" % (symbol, len(t1.date)))
 
         if len(t1.date) > 1: 
-            t1.update_db()
-            print "Updated database %s with table for symbol %s" % (db_path, symbol)
+            if create_db_from_scratch:
+                t1.overwrite_db()
+                print("Table %s has been deleted and recreated in database %s." % (symbol, db_path))
+            else:
+                t1.update_db()
+                print("Table %s has been updated in database %s." % (symbol, db_path))
 
 
     ### A DailyQuotes object downloads quote data from yahoo during init
