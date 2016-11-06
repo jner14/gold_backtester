@@ -58,7 +58,7 @@ gdx_symbols = gdx_symbols[gdx_symbols.isin(signals.columns)]
 while signal_dates[0] != START_DAY: signal_dates.pop(0)
 
 # Create variables to store data from the backtest to be saved in output folder
-index = ['Portfolio_Value', 'Cash', 'Long_Value', 'Short_Value', 'Long_Return', 'Short_Return'] + \
+index = ['Portfolio_Value', 'Cash', 'Long_Value', 'Short_Value', 'Total Return', 'Long_Return', 'Short_Return'] + \
         ['Long_Position {}'.format(i+1) for i in range(10)] + \
         ['Short_Position {}'.format(i+1) for i in range(10)] + \
         ['Trade_{}'.format(i+1) for i in range(40)] 
@@ -108,17 +108,19 @@ for date in rebalance_days:
 
         # Calculate long and short returns
         long_return = get_return(long_value, old_long_value)
-        long_return *= MARGIN_PERCENT/100. + 1.
+        #long_return *= MARGIN_PERCENT/100. + 1.
         short_return = get_return(short_value, old_short_value)
-        short_return *= MARGIN_PERCENT/100. + 1.
+        #short_return *= MARGIN_PERCENT/100. + 1.
+        total_return = long_return + short_return
     else:
         long_return = 0
         short_return = 0
+        total_return = 0
 
     # Get account value adjusted for margin returns
     account_value = my_account.get_account_value(date)
         
-    history[date] = [account_value, cash, long_value, short_value, long_return, short_return]             + \
+    history[date] = [account_value, cash, long_value, short_value, total_return, long_return, short_return]+ \
                     [(stock, my_account.get_position_value(stock, date)) for stock in long_positions]     + \
                     ["" for _ in range(10-len(long_positions))]                                           + \
                     [(stock, my_account.get_position_value(stock, date)) for stock in short_positions]    + \
