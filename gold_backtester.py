@@ -73,8 +73,7 @@ old_long_value  = None
 for date in rebalance_days:
 
     print(" "*60 + date)
-    if date == '2009_05_29':
-        pass
+
     # Get total and 5 percent of account value
     pre_account_value = my_account.get_account_value(date)
     cash = my_account.get_cash_value()
@@ -99,20 +98,27 @@ for date in rebalance_days:
     if old_long_value != None:
 
         # Add margin returns
-        margin_gains = long_value - old_long_value + abs(short_value) - abs(old_short_value)
-        #my_account.deposit_cash(margin_gains)
+        margin_long_gains = long_value - old_long_value
+        margin_short_gains = abs(short_value) - abs(old_short_value)
+        my_account.deposit_cash(margin_long_gains + margin_short_gains)
+
+        # Adjust long and short values for margin returns
+        long_value += margin_long_gains
+        short_value -= margin_short_gains
 
         # Calculate long and short returns
-        # TODO: correct old_long_value as it is prerebalancing and needs to be post
         long_return = get_return(long_value, old_long_value)
-        #long_return *= MARGIN_PERCENT/100. + 1.
+        long_return *= MARGIN_PERCENT/100. + 1.
         short_return = get_return(short_value, old_short_value)
-        #short_return *= MARGIN_PERCENT/100. + 1.
+        short_return *= MARGIN_PERCENT/100. + 1.
     else:
         long_return = 0
         short_return = 0
+
+    # Get account value adjusted for margin returns
+    account_value = my_account.get_account_value(date)
         
-    history[date] = [pre_account_value, cash, long_value, short_value, long_return, short_return]         + \
+    history[date] = [account_value, cash, long_value, short_value, long_return, short_return]             + \
                     [(stock, my_account.get_position_value(stock, date)) for stock in long_positions]     + \
                     ["" for _ in range(10-len(long_positions))]                                           + \
                     [(stock, my_account.get_position_value(stock, date)) for stock in short_positions]    + \
