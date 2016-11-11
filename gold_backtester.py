@@ -20,7 +20,7 @@ START_BALANCE   = 100000.                   # Starting cash balance in portfolio
 MARGIN_PERCENT  = 100.                      # The margin account size as a percent of account value
 START_DAY       = '2008_01_02'              # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
 LIST_SIZE       = 10                        # How many companies per list
-DEBUGGING_STATE = False                     # Whether or not to print debug messages to console
+DEBUGGING_STATE = True                     # Whether or not to print debug messages to console
 
 
 # Create debug object
@@ -73,9 +73,9 @@ for date in rebalance_days:
     old_undervalued['return'] = (all_prices/old_undervalued.price - 1).dropna()
 
     # Print under/over valued lists
-    dp.to_console("\nOvervalued for %s" % date)
+    dp.to_console("\nOvervalued Returns for %s" % date)
     dp.to_console(old_overvalued)
-    dp.to_console("\nUndervalued for %s" % date)
+    dp.to_console("\nUndervalued Returns for %s" % date)
     dp.to_console(old_undervalued)
 
     # Save values to history
