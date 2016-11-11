@@ -132,6 +132,20 @@ def get_rebal_days(whats_left, period):
     return rebalance_days
 
 
+# A class for debug printing
+class Debug_Printer(object):
+
+
+    def __init__(self, debugging_state=True):
+        self.debugging_state = debugging_state
+        return super(Debug_Printer, self).__init__()
+
+
+    def to_console(self, content):
+        if self.debugging_state:
+            print(content)
+
+
 # Get change in value
 def get_return(new_value, old_value): 
     return new_value / old_value - 1

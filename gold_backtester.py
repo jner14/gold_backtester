@@ -20,6 +20,7 @@ START_BALANCE   = 100000.                   # Starting cash balance in portfolio
 MARGIN_PERCENT  = 100.                      # The margin account size as a percent of account value
 START_DAY       = '2008_01_02'              # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
 LIST_SIZE       = 10                        # How many companies per list
+DEBUGGING_STATE = False                     # Whether or not to print debug messages to console
 
 
 # Create QuoteManager object
@@ -27,6 +28,9 @@ quote_manager = QuoteManager(DB_FILEPATH)
 
 # Create dataframe to store return values
 history = pd.DataFrame(index=["Top 10", "Bottom 10", "GDX", "Top 10 vs GDX", "Bottom 10 vs GDX"])
+
+# Create debug object
+dp = Debug_Printer(DEBUGGING_STATE)
 
 
 ### Get rebalance days
@@ -72,10 +76,10 @@ for date in rebalance_days:
     old_undervalued['return'] = (all_prices/old_undervalued.price - 1).dropna()
 
     # Print under/over valued lists
-    print("\nOvervalued for %s" % date)
-    print(old_overvalued)
-    print("\nUndervalued for %s" % date)
-    print(old_undervalued)
+    dp.to_console("\nOvervalued for %s" % date)
+    dp.to_console(old_overvalued)
+    dp.to_console("\nUndervalued for %s" % date)
+    dp.to_console(old_undervalued)
 
     # Save values to history
     Top10 = old_overvalued['return'].sum() / LIST_SIZE
@@ -107,14 +111,14 @@ timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('__%Y-%m-%
 history.to_csv(OUTPUT_PATH + 'history{}.csv'.format(timestamp))
 
 # Print Returns
-#print("\n\n")
-#print("Average Monthly Long Return  : {0:.2f}%".format(amlr))
-#print("Average Monthly Short Return : {0:.2f}%".format(amsr))
-#print("Average Annual Long Return   : {0:.2f}%".format(aalr))
-#print("Average Annual Short Return  : {0:.2f}%".format(aasr))
-#print("Total Long Return            : {0:.2f}%".format(tlr))
-#print("Total Short Return           : {0:.2f}%".format(tsr))
-#print("\n\n")
+#dp.to_console("\n\n")
+#dp.to_console("Average Monthly Long Return  : {0:.2f}%".format(amlr))
+#dp.to_console("Average Monthly Short Return : {0:.2f}%".format(amsr))
+#dp.to_console("Average Annual Long Return   : {0:.2f}%".format(aalr))
+#dp.to_console("Average Annual Short Return  : {0:.2f}%".format(aasr))
+#dp.to_console("Total Long Return            : {0:.2f}%".format(tlr))
+#dp.to_console("Total Short Return           : {0:.2f}%".format(tsr))
+#dp.to_console("\n\n")
 print("Finished!")
 
 
@@ -185,7 +189,7 @@ print("Finished!")
 #old_long_value  = None
 #for date in rebalance_days:
 
-#    print(" "*60 + date)
+#    dp.to_console(" "*60 + date)
 
 #    # Get total and 5 percent of account value
 #    pre_account_value = my_account.get_account_value(date)
@@ -241,7 +245,7 @@ print("Finished!")
 #    for stock in long_positions.index:
 #        if stock not in new_undervalued.index:
 #            order_history[stock] = order_manager.sell_all(stock, date)
-#            print('Sold %s because it is no longer on undervalued list' % stock)
+#            dp.to_console('Sold %s because it is no longer on undervalued list' % stock)
             
 #    # Sell portion of stock on undervalued list that exceeds 5% of account value
 #    long_positions = my_account.get_long_positions()
@@ -253,19 +257,19 @@ print("Finished!")
 #        diff_value = value - five_percent_account
 #        if diff_value > current_price:
 #            order_history[stock] = order_manager.sell(diff_value + current_price, stock, date)
-#            print('Sold some of %s because its value exceeds 5%% of portfolio' % stock)
+#            dp.to_console('Sold some of %s because its value exceeds 5%% of portfolio' % stock)
 #            new_comp = 100.0 * my_account.get_position_value(stock, date) / account_value
-#            print('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
+#            dp.to_console('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
 
 #    # Cover stock that now appears on undervalued list and that no longer is on gdx list
 #    short_positions = my_account.get_short_positions()
 #    for stock in short_positions.index:
 #        if stock in new_undervalued.index:
 #            order_history[stock] = order_manager.cover_all(stock, date, )
-#            print('Covered %s because it is now on undervalued list' % stock)
+#            dp.to_console('Covered %s because it is now on undervalued list' % stock)
 #        elif stock not in new_top_gdx:
 #            order_history[stock] = order_manager.cover_all(stock, date)
-#            print('Covered %s because it is no longer on gdx list' % stock)
+#            dp.to_console('Covered %s because it is no longer on gdx list' % stock)
             
 #    #TODO: This rebalance action is not working, find out why
 #    # Cover portion of stock on gdx list that exceeds 5% of account value
@@ -278,9 +282,9 @@ print("Finished!")
 #        diff_value = value - five_percent_account
 #        if diff_value > current_price:
 #            order_history[stock] = order_manager.cover(diff_value + current_price, stock, date)
-#            print('Covered some of %s because its value exceeds 5%% of portfolio' % stock)
+#            dp.to_console('Covered some of %s because its value exceeds 5%% of portfolio' % stock)
 #            new_comp = 100.0 * my_account.get_position_value(stock, date) / account_value
-#            print('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
+#            dp.to_console('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
 
 #    # Buy stock new to undervalued list
 #    long_positions = my_account.get_long_positions()
@@ -289,7 +293,7 @@ print("Finished!")
 #            account_value = my_account.get_account_value(date)
 #            five_percent_account = .05 * account_value
 #            order_history[stock] = order_manager.buy(five_percent_account, stock, date)
-#            print('Bought %s because it is now on the undervalued list' % stock)
+#            dp.to_console('Bought %s because it is now on the undervalued list' % stock)
 
 #    # Buy more of stock on undervalue list that is below 5% of account value
 #    long_positions = my_account.get_long_positions()
@@ -301,9 +305,9 @@ print("Finished!")
 #        diff_value = five_percent_account - value
 #        if diff_value > current_price:
 #            order_history[stock] = order_manager.buy(diff_value, stock, date)
-#            print('Bought some more of %s because its value falls below 5%% of portfolio' % stock)
+#            dp.to_console('Bought some more of %s because its value falls below 5%% of portfolio' % stock)
 #            new_comp = 100.0 * my_account.get_position_value(stock, date) / account_value
-#            print('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
+#            dp.to_console('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
 
 #    #TODO: This rebalance action is not working, find out why
 #    # Short more of stock on gdx list that is below 5% of account value
@@ -316,9 +320,9 @@ print("Finished!")
 #        diff_value = five_percent_account - value
 #        if diff_value > current_price:
 #            order_history[stock] = order_manager.short(diff_value, stock, date)
-#            print('Shorted some more of %s because its value falls below 5%% of portfolio' % stock)
+#            dp.to_console('Shorted some more of %s because its value falls below 5%% of portfolio' % stock)
 #            new_comp = 100.0 * my_account.get_position_value(stock, date) / account_value
-#            print('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
+#            dp.to_console('New % of portfolio for {}: {:.3}'.format(stock, new_comp))
 
 #    # Short stock that no longer appears on undervalued list that is on gdx list
 #    short_positions = my_account.get_short_positions()
@@ -327,7 +331,7 @@ print("Finished!")
 #        five_percent_account = .05 * account_value
 #        if stock not in short_positions.index:
 #            order_history[stock] = order_manager.short(five_percent_account, stock, date)
-#            print('Shorted %s because it is now on the gdx list' % stock)
+#            dp.to_console('Shorted %s because it is now on the gdx list' % stock)
     
 #    # Shift variables for next rebalance
 #    undervalued_stock = new_undervalued
@@ -356,15 +360,15 @@ print("Finished!")
 #tsr  = history.loc['Short_Return'].sum() * 100.0
 
 ## Print Returns
-#print("\n\n")
-#print("Average Monthly Long Return  : {0:.2f}%".format(amlr))
-#print("Average Monthly Short Return : {0:.2f}%".format(amsr))
-#print("Average Annual Long Return   : {0:.2f}%".format(aalr))
-#print("Average Annual Short Return  : {0:.2f}%".format(aasr))
-#print("Total Long Return            : {0:.2f}%".format(tlr))
-#print("Total Short Return           : {0:.2f}%".format(tsr))
-#print("\n\n")
-#print("Finished!")
+#dp.to_console("\n\n")
+#dp.to_console("Average Monthly Long Return  : {0:.2f}%".format(amlr))
+#dp.to_console("Average Monthly Short Return : {0:.2f}%".format(amsr))
+#dp.to_console("Average Annual Long Return   : {0:.2f}%".format(aalr))
+#dp.to_console("Average Annual Short Return  : {0:.2f}%".format(aasr))
+#dp.to_console("Total Long Return            : {0:.2f}%".format(tlr))
+#dp.to_console("Total Short Return           : {0:.2f}%".format(tsr))
+#dp.to_console("\n\n")
+#dp.to_console("Finished!")
 
 ## Display Graphs
 #spy_quotes = [quote_manager.get_quote('SPY', date) for date in history.columns]
