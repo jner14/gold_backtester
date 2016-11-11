@@ -19,6 +19,7 @@ REBAL_PERIOD    = 1                         # Number of months between rebalance
 START_BALANCE   = 100000.                   # Starting cash balance in portfolio
 MARGIN_PERCENT  = 100.                      # The margin account size as a percent of account value
 START_DAY       = '2008_01_02'              # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
+LIST_SIZE       = 10                        # How many companies per list
 
 
 # Create QuoteManager object
@@ -46,10 +47,10 @@ old_date = None
 for date in rebalance_days:
 
     # Get top 10 undervalued stock for current date
-    overvalued = get_overvalued(signals, date, quote_manager, 10)
+    overvalued = get_overvalued(signals, date, quote_manager, LIST_SIZE)
 
     # Get bottom 10 undervalued stock for current date
-    undervalued = get_undervalued(signals, date, quote_manager, 10)
+    undervalued = get_undervalued(signals, date, quote_manager, LIST_SIZE)
     
     # If this is the first date, skip to next
     if old_date is None:
@@ -77,8 +78,8 @@ for date in rebalance_days:
     print(old_undervalued)
 
     # Save values to history
-    Top10 = reduce(lambda x, y: x * y, (old_overvalued['return'] + 1)) - 1
-    Bottom10 = reduce(lambda x, y: x * y, (old_undervalued['return'] + 1)) - 1
+    Top10 = old_overvalued['return'].sum() / LIST_SIZE
+    Bottom10 = old_undervalued['return'].sum() / LIST_SIZE
     GDX = 0
     Top10vsGDX = 0
     Bottom10vsGDX = 0
@@ -92,11 +93,18 @@ for date in rebalance_days:
 
 
 # Handle stored data by saving files
-timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H-%M-%S'))
+timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('_%Y-%m-%d__%H-%M-%S'))
 history.to_csv(OUTPUT_PATH + 'history_{}.csv'.format(timestamp))
 
 # Calculate Returns
-# TODO: calculate and print returns
+# TODO: calculate and print total returns
+Top10_total         = reduce(lambda x, y: x * y, (history.loc['Top 10'          ] + 1)) - 1
+Bottom10_total      = reduce(lambda x, y: x * y, (history.loc['Bottom 10'       ] + 1)) - 1
+GDX_total           = reduce(lambda x, y: x * y, (history.loc['GDX'             ] + 1)) - 1
+Top10vsGDX_total    = reduce(lambda x, y: x * y, (history.loc['Top 10 vs GDX'   ] + 1)) - 1
+Bottom10vsGDX_total = reduce(lambda x, y: x * y, (history.loc['Bottom 10 vs GDX'] + 1)) - 1
+
+history['Totals'] = [Top10_total, Bottom10_total, GDX_total, Top10vsGDX_total, Bottom10vsGDX_total]
 
 # Print Returns
 #print("\n\n")
