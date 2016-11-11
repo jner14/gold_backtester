@@ -26,23 +26,58 @@ def get_top_gdx(gdx_components, quote_manager, exclude_stock=None, count=10):
 
 
 # Get undervalued stock based on lowest signal value for a given date
-def get_undervalued(signals, date, quote_manager, count=10):
-    # Grab the signals for the date in question and order them 
-    day_signals = signals.loc[date.replace('_', '-')].order()
-    day_signals_no_nans = day_signals[:day_signals.last_valid_index()]
+def get_undervalued(signals, date, quote_manager, count):
+    return get_valued(signals, date, quote_manager, count, type="under")
 
-    # Remove and symbols that don't have quote data available for current date
-    for symbol in day_signals_no_nans.index:
-        if quote_manager.get_quote(symbol, date) == 'nan':
-            day_signals_no_nans = day_signals_no_nans.drop(symbol)
-         
-    # TODO: Return top 10 even if not negative? Currently yes.
-    if len(day_signals_no_nans) > count:
-        return day_signals_no_nans[:count]
+
+# Get overvalued stock based on highest signal value for a given date
+def get_overvalued(signals, date, quote_manager, count):
+    return get_valued(signals, date, quote_manager, count, type="over")
+
+
+# Get over or under valued stock based on highest or lowest signal value for a given date
+def get_valued(signals, date, quote_manager, count, type="under"):
+    """type can be 'under' or 'over'."""
+    
+    # Grab the signals for the date in question and order them 
+    if type == "over":
+        day_signals = signals.loc[date.replace('_', '-')].sort_values(ascending=False)
+    elif type == "under":
+        day_signals = signals.loc[date.replace('_', '-')].sort_values()
+
+    day_signals_no_nans = day_signals.dropna()
+    nan_signals = day_signals[day_signals.last_valid_index():].index[1:]
+
+    # Print symbols that have NAN signal data
+    print("\nNAN signal data on %s:" % date)
+    if len(nan_signals) > 0:
+        for nan in nan_signals:
+            print(nan)
     else:
-        if len(day_signals_no_nans) == 0: 
-            print("NO VALID UNDERVALUED STOCK FOUND FOR DATE: %s" % date)
-        return day_signals_no_nans
+        print("None")
+
+    # Get quote data and remove any symbols that don't have quote data available for current date
+    quotes = pd.Series()
+    nan_quotes = []
+    for symbol in day_signals_no_nans.index:
+        quotes[symbol] = quote_manager.get_quote(symbol, date)
+        if quotes[symbol] == 'nan':
+            nan_quotes.append(symbol)
+            quotes = quotes.drop(symbol)
+            day_signals_no_nans = day_signals_no_nans.drop(symbol)
+            
+
+    combined = pd.DataFrame(index=day_signals_no_nans.index)
+    combined["signal"] = day_signals_no_nans
+    combined["price"] = quotes
+         
+    # TODO: Return top results if not negative or positive? Currently yes.
+    if len(combined) > count:
+         return combined[:count]
+    else:
+        if len(combined) == 0: 
+            print("NO VALID UNDER/OVER VALUED STOCK FOUND FOR DATE: %s" % date)
+        return None
 
 
 # Get next rebalance day without affecting whats_left list
