@@ -23,14 +23,14 @@ LIST_SIZE       = 10                        # How many companies per list
 DEBUGGING_STATE = False                     # Whether or not to print debug messages to console
 
 
+# Create debug object
+dp = Debug_Printer(DEBUGGING_STATE)
+
 # Create QuoteManager object
-quote_manager = QuoteManager(DB_FILEPATH)
+quote_manager = QuoteManager(DB_FILEPATH, dp)
 
 # Create dataframe to store return values
 history = pd.DataFrame(index=["Top 10", "Bottom 10", "GDX", "Top 10 vs GDX", "Bottom 10 vs GDX"])
-
-# Create debug object
-dp = Debug_Printer(DEBUGGING_STATE)
 
 
 ### Get rebalance days
@@ -56,7 +56,7 @@ for date in rebalance_days:
     # Get bottom 10 undervalued stock for current date
     undervalued = get_undervalued(signals, date, quote_manager, LIST_SIZE)
     
-    # If this is the first date, skip to next
+    # If this is the first date initialize variables and skip rest of loop to next date
     if old_date is None:
         old_date = date
         old_overvalued = overvalued
@@ -64,9 +64,6 @@ for date in rebalance_days:
         continue
 
     all_prices = pd.Series([quote_manager.get_quote(sym, date) for sym in signals.columns], index=signals.columns)
-
-    #overvalued['old price'] = old_overvalued.price
-    #undervalued['old price'] = old_undervalued.price
 
     old_overvalued['new price'] = all_prices
     old_undervalued['new price'] = all_prices

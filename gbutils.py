@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+DEBUGGING_STATE = False                     # Whether or not to print debug messages to console
+
 
 # Get top GDX component stock based on greatest market value but excluding exclude_stock 
 def get_top_gdx(gdx_components, quote_manager, exclude_stock=None, count=10):
@@ -21,7 +23,7 @@ def get_top_gdx(gdx_components, quote_manager, exclude_stock=None, count=10):
         return diff[:count]
     else:
         if len(diff) == 0: 
-            print("NO VALID GDX COMPONENT STOCK FOUND FOR DATE: %s" % date)
+            dp.to_console("NO VALID GDX COMPONENT STOCK FOUND FOR DATE: %s" % date)
         return diff
 
 
@@ -49,12 +51,12 @@ def get_valued(signals, date, quote_manager, count, type="under"):
     nan_signals = day_signals[day_signals.last_valid_index():].index[1:]
 
     # Print symbols that have NAN signal data
-    print("\nNAN signal data on %s:" % date)
+    dp.to_console("\nNAN signal data on %s:" % date)
     if len(nan_signals) > 0:
         for nan in nan_signals:
-            print(nan)
+            dp.to_console(nan)
     else:
-        print("None")
+        dp.to_console("None")
 
     # Get quote data and remove any symbols that don't have quote data available for current date
     quotes = pd.Series()
@@ -76,7 +78,7 @@ def get_valued(signals, date, quote_manager, count, type="under"):
          return combined[:count]
     else:
         if len(combined) == 0: 
-            print("NO VALID UNDER/OVER VALUED STOCK FOUND FOR DATE: %s" % date)
+            dp.to_console("NO VALID UNDER/OVER VALUED STOCK FOUND FOR DATE: %s" % date)
         return None
 
 
@@ -144,8 +146,14 @@ class Debug_Printer(object):
     def to_console(self, content):
         if self.debugging_state:
             print(content)
+        else:
+            print('.'),
 
 
 # Get change in value
 def get_return(new_value, old_value): 
     return new_value / old_value - 1
+
+
+# Create debug object
+dp = Debug_Printer(DEBUGGING_STATE)

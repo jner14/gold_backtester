@@ -8,10 +8,11 @@ class QuoteManager(object):
     QUOTE_TYPES = ['Open', 'Close', 'High', 'Low', 'Volume', 'Adj_Close']
 
 
-    def __init__(self, db_path):
+    def __init__(self, db_path, debugger):
         self.db_path = db_path
         self.con = lite.connect(self.db_path)
         self._quotes = {}
+        self.to_console = debugger.to_console
 
         # Connect to quotes database and load all quotes into memory
         # TODO: If using files larger than 10mb, consider modifying to optimize memory usage
@@ -34,14 +35,14 @@ class QuoteManager(object):
 
         # If there is not quote data for a given symbol return nan
         if symbol == 'ANVGQ':
-            print("Quote data is not available for %s" % symbol)
+            self.to_console("Quote data is not available for %s" % symbol)
             return 'nan'
 
         # If there is quote data available for the given date, return it
         if date in self._quotes[symbol][type].index:
             return self._quotes[symbol][type][date]
         else:
-            print("Quote data is not available on %s for %s" % (date, symbol))
+            self.to_console("Quote data is not available on %s for %s" % (date, symbol))
             return 'nan'
 
 
