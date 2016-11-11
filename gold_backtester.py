@@ -92,10 +92,6 @@ for date in rebalance_days:
     old_undervalued = undervalued
 
 
-# Handle stored data by saving files
-timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('_%Y-%m-%d__%H-%M-%S'))
-history.to_csv(OUTPUT_PATH + 'history_{}.csv'.format(timestamp))
-
 # Calculate Returns
 # TODO: calculate and print total returns
 Top10_total         = reduce(lambda x, y: x * y, (history.loc['Top 10'          ] + 1)) - 1
@@ -105,6 +101,10 @@ Top10vsGDX_total    = reduce(lambda x, y: x * y, (history.loc['Top 10 vs GDX'   
 Bottom10vsGDX_total = reduce(lambda x, y: x * y, (history.loc['Bottom 10 vs GDX'] + 1)) - 1
 
 history['Totals'] = [Top10_total, Bottom10_total, GDX_total, Top10vsGDX_total, Bottom10vsGDX_total]
+
+# Save values to a csv file
+timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('__%Y-%m-%d__%H-%M-%S__'))
+history.to_csv(OUTPUT_PATH + 'history{}.csv'.format(timestamp))
 
 # Print Returns
 #print("\n\n")
