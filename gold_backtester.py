@@ -97,7 +97,6 @@ for date in rebalance_days:
 
 
 # Calculate Returns
-# TODO: calculate and print total returns
 # TODO: GDX long less the ones on undervalued
 Top10_total         = reduce(lambda x, y: x * y, (history.loc['Top 10'          ] + 1)) - 1
 Bottom10_total      = reduce(lambda x, y: x * y, (history.loc['Bottom 10'       ] + 1)) - 1
@@ -112,14 +111,13 @@ timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('__%Y-%m-%
 history.to_csv(OUTPUT_PATH + 'history{}.csv'.format(timestamp))
 
 # Print Returns
-#dp.to_console("\n\n")
-#dp.to_console("Average Monthly Long Return  : {0:.2f}%".format(amlr))
-#dp.to_console("Average Monthly Short Return : {0:.2f}%".format(amsr))
-#dp.to_console("Average Annual Long Return   : {0:.2f}%".format(aalr))
-#dp.to_console("Average Annual Short Return  : {0:.2f}%".format(aasr))
-#dp.to_console("Total Long Return            : {0:.2f}%".format(tlr))
-#dp.to_console("Total Short Return           : {0:.2f}%".format(tsr))
-#dp.to_console("\n\n")
+dp.to_console("\n\n")
+dp.to_console("Total Top 10 Return    : {0:.2f}%".format(Top10_total        ))
+dp.to_console("Total Bottom 10 Return : {0:.2f}%".format(Bottom10_total     ))
+dp.to_console("Total GDX Return       : {0:.2f}%".format(GDX_total          ))
+dp.to_console("Top 10 vs GDX          : {0:.2f}%".format(Top10vsGDX_total   ))
+dp.to_console("Bottom 10 vs GDX       : {0:.2f}%".format(Bottom10vsGDX_total))
+dp.to_console("\n\n")
 print("Finished!")
 
 
