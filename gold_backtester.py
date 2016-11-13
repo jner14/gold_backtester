@@ -18,7 +18,7 @@ OUTPUT_PATH     = 'output/'
 REBAL_PERIOD    = 1                         # Number of months between rebalance
 START_BALANCE   = 100000.                   # Starting cash balance in portfolio
 MARGIN_PERCENT  = 100.                      # The margin account size as a percent of account value
-START_DAY       = '2016_01_04'              # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
+START_DAY       = '2008_01_02'              # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
 LIST_SIZE       = 10                        # How many companies per list
 DEBUGGING_STATE = True                     # Whether or not to print debug messages to console
 
@@ -84,9 +84,9 @@ for date in rebalance_days:
     # Save values to history
     Top10 = old_overvalued['return'].sum() / LIST_SIZE
     Bottom10 = old_undervalued['return'].sum() / LIST_SIZE
-    GDX = 0
-    Top10vsGDX = 0
-    Bottom10vsGDX = 0
+    GDX = quote_manager.get_quote('GDX', date) / quote_manager.get_quote('GDX', old_date) - 1
+    Top10vsGDX = Top10 - GDX
+    Bottom10vsGDX = Bottom10 - GDX
 
     history[date] = [Top10, Bottom10, GDX, Top10vsGDX, Bottom10vsGDX]
 
