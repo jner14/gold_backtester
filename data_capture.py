@@ -374,11 +374,11 @@ if __name__ == '__main__':
     db_path = 'data/daily_gold.db'
     picks_path = 'symbols/gold_picks.csv'
     gdx_path = 'symbols/gold_gdx.csv'
-    create_db_from_scratch = False
+    create_from_scratch = False
 
     picks_tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=picks_path, min_samples=1)
     gdx_tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=gdx_path, min_samples=1)
-    all_tickers = picks_tickers + gdx_tickers + ['SPY']
+    all_tickers = picks_tickers + gdx_tickers + ['SPY', 'GDX']
 
     print "Downloading Stock Prices!"
     for symbol in all_tickers:
@@ -389,7 +389,7 @@ if __name__ == '__main__':
         print("%s: %s" % (symbol, len(t1.date)))
 
         if len(t1.date) > 1: 
-            if create_db_from_scratch:
+            if create_from_scratch:
                 t1.overwrite_db()
                 print("Table %s has been deleted and recreated in database %s." % (symbol, db_path))
             else:

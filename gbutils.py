@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-DEBUGGING_STATE = False                     # Whether or not to print debug messages to console
+DEBUGGING_STATE = True                     # Whether or not to print debug messages to console
 
 
 # Get top GDX component stock based on greatest market value but excluding exclude_stock 

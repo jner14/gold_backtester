@@ -18,7 +18,7 @@ OUTPUT_PATH     = 'output/'
 REBAL_PERIOD    = 1                         # Number of months between rebalance
 START_BALANCE   = 100000.                   # Starting cash balance in portfolio
 MARGIN_PERCENT  = 100.                      # The margin account size as a percent of account value
-START_DAY       = '2008_01_02'              # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
+START_DAY       = '2016_01_04'              # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
 LIST_SIZE       = 10                        # How many companies per list
 DEBUGGING_STATE = True                     # Whether or not to print debug messages to console
 
@@ -49,6 +49,9 @@ rebalance_days = get_rebal_days(signal_dates, REBAL_PERIOD)
 ### Iterate through rebalance dates calculating returns
 old_date = None
 for date in rebalance_days:
+
+    if date == '2016_07_29':
+        pass
 
     # Get top 10 undervalued stock for current date
     overvalued = get_overvalued(signals, date, quote_manager, LIST_SIZE)
@@ -95,6 +98,7 @@ for date in rebalance_days:
 
 # Calculate Returns
 # TODO: calculate and print total returns
+# TODO: GDX long less the ones on undervalued
 Top10_total         = reduce(lambda x, y: x * y, (history.loc['Top 10'          ] + 1)) - 1
 Bottom10_total      = reduce(lambda x, y: x * y, (history.loc['Bottom 10'       ] + 1)) - 1
 GDX_total           = reduce(lambda x, y: x * y, (history.loc['GDX'             ] + 1)) - 1
