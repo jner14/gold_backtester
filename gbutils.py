@@ -5,26 +5,29 @@ DEBUGGING_STATE = True                     # Whether or not to print debug messa
 
 
 # Get top GDX component stock based on greatest market value but excluding exclude_stock 
-def get_top_gdx(gdx_components, quote_manager, exclude_stock=None, count=10):
+def get_top_gdx(gdx_components, date, quote_manager, exclude_stock=None, count=10):
 
-    # Grab date from exclude_stock for checking quote data exists
-    date = exclude_stock.name
-
-    # Remove and symbols that don't have quote data available for current date
+    # Remove any symbols that don't have quote data available for current date
+    quotes = pd.Series()
     gdx_refined = gdx_components.copy()
-    for i in gdx_refined.index:
-        if quote_manager.get_quote(gdx_refined[i], date.replace('-', '_')) == 'nan':
-            gdx_refined = gdx_refined.drop(i)
+    for symbol in gdx_refined:
+        quotes[symbol] = quote_manager.get_quote(symbol, date)
+        if quotes[symbol] == 'nan':
+            #gdx_refined = gdx_refined.drop(i)
+            quotes = quotes.drop(symbol)
 
     assert exclude_stock is not None, 'Error in get_top_gdx(): exclude_stock is None'
-    diff = gdx_refined[~gdx_refined.isin(exclude_stock.index)]
+    quotes = quotes[~quotes.index.isin(exclude_stock.index)]
 
-    if len(diff) > count:
-        return diff[:count]
+    top_gdx = pd.DataFrame(index=quotes.index)
+    top_gdx["price"] = quotes
+
+    if len(top_gdx) > count:
+        return top_gdx[:count]
     else:
-        if len(diff) == 0: 
+        if len(top_gdx) == 0: 
             dp.to_console("NO VALID GDX COMPONENT STOCK FOUND FOR DATE: %s" % date)
-        return diff
+        return top_gdx
 
 
 # Get undervalued stock based on lowest signal value for a given date
@@ -68,7 +71,6 @@ def get_valued(signals, date, quote_manager, count, type="under"):
             quotes = quotes.drop(symbol)
             day_signals_no_nans = day_signals_no_nans.drop(symbol)
             
-
     combined = pd.DataFrame(index=day_signals_no_nans.index)
     combined["signal"] = day_signals_no_nans
     combined["price"] = quotes
