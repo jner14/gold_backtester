@@ -271,8 +271,6 @@ class DailyQuotes(Ticker):
         csv = urllib.urlopen(url_string).readlines()
         csv.reverse()
         if 'head' not in csv and '</div></body></html>\n' not in csv:
-#            print("DOWNLOADED GARBAGE\n%s\n%s\n%s" %('='*88, csv, '='*88))
-#        else:
             if source == 'yahoo':
                 for bar in xrange(0,len(csv)-1):
                     ds,open_,high,low,close,volume,adj_close = csv[bar].rstrip().split(',')
@@ -288,6 +286,11 @@ class DailyQuotes(Ticker):
                     open_,high,low,close = [float(x) for x in [open_,high,low,close]]
                     dt = datetime.datetime.strptime(ds,'%d-%b-%y')
                     self.append(dt,open_,high,low,close,volume)
+        elif 'Sorry' in ''.join(csv):
+            print("#"*60)
+            print("YAHOO RETURNED THE FOLLOWING 404 ERROR: Sorry, the page you requested was not found.")
+            print("#"*60)
+
 
 ### Works with YAHOO only
 def download_latest_quotes(type_='daily', time_frame=360):
@@ -393,8 +396,12 @@ if __name__ == '__main__':
                 t1.overwrite_db()
                 print("Table %s has been deleted and recreated in database %s." % (symbol, db_path))
             else:
-                t1.update_db()
-                print("Table %s has been updated in database %s." % (symbol, db_path))
+                try:
+                    t1.update_db()
+                    print("Table %s has been updated in database %s." % (symbol, db_path))
+                except:
+                    t1.overwrite_db()
+                    print("Table %s has been created in database %s." % (symbol, db_path))
 
 
     ### A DailyQuotes object downloads quote data from yahoo during init
