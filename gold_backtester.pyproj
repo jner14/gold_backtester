@@ -50,7 +50,6 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="data\daily_gold.db" />
-    <Content Include="data\sqlite3.exe" />
     <Content Include="signals\signal_data.csv" />
     <Content Include="symbols\gold_gdx.csv" />
     <Content Include="symbols\gold_picks.csv" />

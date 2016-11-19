@@ -140,7 +140,7 @@ class Ticker(object):
             stockvalues = tuple(stockvalues)
             cur = con.cursor()
             cur.execute("DROP TABLE IF EXISTS %s" % ticker)
-            cur.execute("CREATE TABLE %s(Datetime INT, Open REAL, Close REAL, High REAL, Low REAL, Volume INT, Adj_Close REAL)" % ticker)
+            cur.execute("CREATE TABLE %s(Datetime INT PRIMARY KEY, Open REAL, Close REAL, High REAL, Low REAL, Volume INT, Adj_Close REAL)" % ticker)
             sqlite_string = "INSERT INTO %s VALUES(?, ?, ?, ?, ?, ?, ?)" % ticker
             cur.executemany(sqlite_string, stockvalues)
             
@@ -182,7 +182,8 @@ class Ticker(object):
             stockvalues = tuple(stockvalues)
             cur = con.cursor()
             sqlite_string = "INSERT INTO %s VALUES(?, ?, ?, ?, ?, ?, ?)" % ticker
-            cur.executemany(sqlite_string, stockvalues)
+            result = cur.executemany(sqlite_string, stockvalues)
+            pass
             
 #            cur.execute("SELECT * FROM %s" % ticker)
 
@@ -381,12 +382,13 @@ if __name__ == '__main__':
 
     picks_tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=picks_path, min_samples=1)
     gdx_tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=gdx_path, min_samples=1)
-    all_tickers = picks_tickers + gdx_tickers + ['SPY', 'GDX']
+    all_tickers = set(picks_tickers + gdx_tickers + ['SPY', 'GDX'])
 
     print "Downloading Stock Prices!"
     for symbol in all_tickers:
+
         t1 = DailyQuotes(symbol     = symbol,
-                         start_date = '2007-09-23',  # '2007-09-23'  '2016-11-1'
+                         start_date = '2007-01-01',  # '2007-09-23'  '2016-11-1'
                          db_path    = db_path)
 
         print("%s: %s" % (symbol, len(t1.date)))
