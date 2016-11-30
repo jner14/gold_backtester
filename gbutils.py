@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from datetime import date, timedelta
 
 DEBUGGING_STATE = True                     # Whether or not to print debug messages to console
 
@@ -28,6 +29,14 @@ def get_top_gdx(gdx_components, date, quote_manager, exclude_stock=None, count=1
         if len(top_gdx) == 0: 
             dp.to_console("NO VALID GDX COMPONENT STOCK FOUND FOR DATE: %s" % date)
         return top_gdx
+
+
+# Get a date based on a given date plus an offset of days
+def get_date_offset(start_date = '2008_02_29', offset = -20):
+    delta = timedelta(days = offset)
+    year, month, day = start_date.split('_')
+    start = date(int(year), int(month), int(day))
+    return start + delta 
 
 
 # Get undervalued stock based on lowest signal value for a given date
@@ -159,3 +168,8 @@ def get_return(new_value, old_value):
 
 # Create debug object
 dp = Debug_Printer(DEBUGGING_STATE)
+
+
+# For debugging purposes
+if __name__ == '__main__':
+    print(get_date_offset(start_date='2008_01_05'))

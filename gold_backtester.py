@@ -30,7 +30,7 @@ dp = Debug_Printer(DEBUGGING_STATE)
 quote_manager = QuoteManager(DB_FILEPATH, dp)
 
 # Create dataframe to store return values
-history = pd.DataFrame(index=["Top 10", "Bottom 10", "Top 10 GDX", "GDX", "Top 10 vs GDX", "Bottom 10 vs GDX"])
+history = pd.DataFrame(index=["Top 10", "Bottom 10", "GDX", "Top 10 vs GDX", "Bottom 10 vs GDX"])
 
 # Load signals data
 signals = pd.read_csv(SIGNALS_PATH, index_col=0)
@@ -51,10 +51,10 @@ rebalance_days = get_rebal_days(signal_dates, REBAL_PERIOD)
 old_date = None
 for date in rebalance_days:
 
-    # Get top 10 undervalued stock for current date
+    # Get 10 most overvalued stock for current date
     overvalued = get_overvalued(signals, date, quote_manager, LIST_SIZE)
 
-    # Get bottom 10 undervalued stock for current date
+    # Get 10 most undervalued stock for current date
     undervalued = get_undervalued(signals, date, quote_manager, LIST_SIZE)
 
     # Get Top 10 GDX not included in undervalued list
@@ -90,12 +90,11 @@ for date in rebalance_days:
     # Save values to history
     Top10         = old_overvalued['return'].sum() / len(old_overvalued)
     Bottom10      = old_undervalued['return'].sum() / len(old_undervalued)
-    Top10GDX      = old_top_gdx['return'].sum() / len(old_top_gdx)
     GDX           = quote_manager.get_quote('GDX', date) / quote_manager.get_quote('GDX', old_date) - 1
     Top10vsGDX    = Top10 - GDX
     Bottom10vsGDX = Bottom10 - GDX
 
-    history[date] = [Top10, Bottom10, Top10GDX, GDX, Top10vsGDX, Bottom10vsGDX]
+    history[date] = [Top10, Bottom10, GDX, Top10vsGDX, Bottom10vsGDX]
 
     # Set new as old for next rebalance
     old_date = date
@@ -107,12 +106,11 @@ for date in rebalance_days:
 # Calculate Returns
 Top10_total         = reduce(lambda x, y: x * y, (history.loc['Top 10'          ] + 1)) - 1
 Bottom10_total      = reduce(lambda x, y: x * y, (history.loc['Bottom 10'       ] + 1)) - 1
-Top10GDX_total      = reduce(lambda x, y: x * y, (history.loc['Top 10 GDX'      ] + 1)) - 1
 GDX_total           = reduce(lambda x, y: x * y, (history.loc['GDX'             ] + 1)) - 1
 Top10vsGDX_total    = reduce(lambda x, y: x * y, (history.loc['Top 10 vs GDX'   ] + 1)) - 1
 Bottom10vsGDX_total = reduce(lambda x, y: x * y, (history.loc['Bottom 10 vs GDX'] + 1)) - 1
 
-history['Totals'] = [Top10_total, Bottom10_total, Top10GDX_total, GDX_total, Top10vsGDX_total, Bottom10vsGDX_total]
+history['Totals'] = [Top10_total, Bottom10_total, GDX_total, Top10vsGDX_total, Bottom10vsGDX_total]
 
 # Save values to a csv file
 timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('__%Y-%m-%d__%H-%M-%S__'))
@@ -122,7 +120,6 @@ history.to_csv(OUTPUT_PATH + 'history{}.csv'.format(timestamp))
 dp.to_console("\n\n")
 dp.to_console("Total Top 10 Return    : {0:.2f}%".format(Top10_total*100        ))
 dp.to_console("Total Bottom 10 Return : {0:.2f}%".format(Bottom10_total*100     ))
-dp.to_console("Total Top 10 GDX Return: {0:.2f}%".format(Top10GDX_total*100     ))
 dp.to_console("Total GDX Return       : {0:.2f}%".format(GDX_total*100          ))
 dp.to_console("Top 10 vs GDX          : {0:.2f}%".format(Top10vsGDX_total*100   ))
 dp.to_console("Bottom 10 vs GDX       : {0:.2f}%".format(Bottom10vsGDX_total*100))
