@@ -36,7 +36,8 @@ def get_date_offset(start_date = '2008_02_29', offset = -20):
     delta = timedelta(days = offset)
     year, month, day = start_date.split('_')
     start = date(int(year), int(month), int(day))
-    return start + delta 
+    new_date = start + delta
+    return new_date.strftime('%Y_%m_%d')
 
 
 # Get undervalued stock based on lowest signal value for a given date
@@ -172,4 +173,4 @@ dp = Debug_Printer(DEBUGGING_STATE)
 
 # For debugging purposes
 if __name__ == '__main__':
-    print(get_date_offset(start_date='2008_01_05'))
+    print(get_date_offset(start_date='2008_01_25'))
