@@ -41,17 +41,17 @@ def get_date_offset(start_date = '2008_02_29', offset = -20):
 
 
 # Get undervalued stock based on lowest signal value for a given date
-def get_undervalued(signals, date, quote_manager, count):
-    return get_valued(signals, date, quote_manager, count, type="under")
+def get_undervalued(signals, date, quote_manager, count, relative_prcnt = .01, relative_offset = -20):
+    return get_valued(signals, date, quote_manager, count, relative_prcnt, relative_offset, type="under")
 
 
 # Get overvalued stock based on highest signal value for a given date
-def get_overvalued(signals, date, quote_manager, count):
-    return get_valued(signals, date, quote_manager, count, type="over")
+def get_overvalued(signals, date, quote_manager, count, relative_prcnt = .01, relative_offset = -20):
+    return get_valued(signals, date, quote_manager, count, relative_prcnt, relative_offset, type="over")
 
 
 # Get over or under valued stock based on highest or lowest signal value for a given date
-def get_valued(signals, date, quote_manager, count, type="under"):
+def get_valued(signals, date, quote_manager, count, relative_prcnt, relative_offset, type="under"):
     """type can be 'under' or 'over'."""
     
     # Grab the signals for the date in question and order them 
@@ -71,26 +71,59 @@ def get_valued(signals, date, quote_manager, count, type="under"):
     else:
         dp.to_console("None")
 
+    # Get GDX quotes and price delta
+    gdx_today = quote_manager.get_quote('GDX', date)
+    assert gdx_today != 'nan', "Error in gbutils get_valued() with gdx_today"
+    gdx_past = 'nan'
+    i = 0
+    while gdx_past == 'nan':
+        # While gdx doesn't have a quote, add one day to offset
+        date_offset = get_date_offset(date, relative_offset + i)
+        gdx_past = quote_manager.get_quote('GDX', date_offset)
+        # If the offset has been more than doubled then error
+        assert abs(i) <= abs(relative_offset), "Error in gbutils get_valued() with gdx_past"
+        if relative_offset <= 0:
+            i -= 1
+        else:
+            i += 1
+    # Calculate the change in GDX price
+    gdx_delta = (gdx_today / gdx_past) - 1.
+
     # Get quote data and remove any symbols that don't have quote data available for current date
     quotes = pd.Series()
+    old_quotes = pd.Series()
     nan_quotes = []
     for symbol in day_signals_no_nans.index:
         quotes[symbol] = quote_manager.get_quote(symbol, date)
-        if quotes[symbol] == 'nan':
+        old_quotes[symbol] = quote_manager.get_quote(symbol, date_offset)
+        # Drop any symbols that don't have quote data
+        if quotes[symbol] == 'nan' or old_quotes[symbol] == 'nan':
             nan_quotes.append(symbol)
             quotes = quotes.drop(symbol)
+            old_quotes = old_quotes.drop(symbol)
             day_signals_no_nans = day_signals_no_nans.drop(symbol)
             
+    relative_change = (quotes / old_quotes) - 1. - gdx_delta
     combined = pd.DataFrame(index=day_signals_no_nans.index)
     combined["signal"] = day_signals_no_nans
     combined["price"] = quotes
+    combined["price_{}".format(date_offset)] = old_quotes
+    combined["GDX"] = gdx_today
+    combined["GDX_{}".format(date_offset)] = gdx_past
+    combined["relative_change"] = relative_change
+    
+    if type == "over":
+        filtered = combined.loc[combined.relative_change > relative_prcnt]
+    elif type == "under":
+        filtered = combined.loc[combined.relative_change < relative_prcnt]
          
     # TODO: Return top results if not negative or positive? Currently yes.
-    if len(combined) > count:
-         return combined[:count]
+    if len(filtered) > count:
+        return filtered[:count]
+    elif len(filtered) > 0:
+        return filtered
     else:
-        if len(combined) == 0: 
-            dp.to_console("NO VALID UNDER/OVER VALUED STOCK FOUND FOR DATE: %s" % date)
+        dp.to_console("NO VALID UNDER/OVER VALUED STOCK FOUND FOR DATE: %s" % date)
         return None
 
 
