@@ -20,9 +20,7 @@ START_BALANCE   = 100000.                   # Starting cash balance in portfolio
 MARGIN_PERCENT  = 100.                      # The margin account size as a percent of account value
 START_DAY       = '2008_01_02'              # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
 LIST_SIZE       = 10                        # How many companies per list
-DEBUGGING_STATE = True                      # Whether or not to print debug messages to console
-RELATIVE_PRCNT  = .01                       # Percent used as cutoff for calculating relative performance
-RELATIVE_OFFSET = -20                       # Offset in days used for calculating relative performance
+DEBUGGING_STATE = True                     # Whether or not to print debug messages to console
 
 
 # Create debug object
@@ -54,10 +52,10 @@ old_date = None
 for date in rebalance_days:
 
     # Get 10 most overvalued stock for current date
-    overvalued = get_overvalued(signals, date, quote_manager, LIST_SIZE, RELATIVE_PRCNT, RELATIVE_OFFSET)
+    overvalued = get_overvalued(signals, date, quote_manager, LIST_SIZE)
 
     # Get 10 most undervalued stock for current date
-    undervalued = get_undervalued(signals, date, quote_manager, LIST_SIZE, RELATIVE_PRCNT, RELATIVE_OFFSET)
+    undervalued = get_undervalued(signals, date, quote_manager, LIST_SIZE)
 
     # Get Top 10 GDX not included in undervalued list
     top_gdx = get_top_gdx(gdx_symbols, date, quote_manager, undervalued)
