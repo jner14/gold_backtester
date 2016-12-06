@@ -15,10 +15,11 @@ SIGNALS_PATH    = 'signals/signal_data.csv'
 OUTPUT_PATH     = 'output/'
 
 # Parameters
-REBAL_PERIOD    = 'D'                       # Time between rebalance, D - Daily, W - Weekly, M - Monthly, Q - Quarterly
-START_DAY       = '2008_01_02'              # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
-LIST_SIZE       = 10                        # How many companies per list
-DEBUGGING_STATE = True                      # Whether or not to print debug messages to console
+REBAL_PERIOD    = 'M'                   # Time between rebalance, D - Daily, W - Weekly, M - Monthly, Q - Quarterly
+START_DAY       = '2008_01_02'          # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
+CMMSSN_SLPPG    = .005                  # Commission and slippage as a percent taken from each rebalance return
+LIST_SIZE       = 10                    # How many companies per list
+DEBUGGING_STATE = True                  # Whether or not to print debug messages to console
 
 
 # Create debug object
@@ -87,7 +88,9 @@ for date in rebalance_days:
 
     # Save values to history
     Top10         = old_overvalued['return'].sum() / len(old_overvalued)
+    Top10        -= abs(Top10) * CMMSSN_SLPPG
     Bottom10      = old_undervalued['return'].sum() / len(old_undervalued)
+    Bottom10     += abs(Bottom10) * CMMSSN_SLPPG
     GDX           = quote_manager.get_quote('GDX', date) / quote_manager.get_quote('GDX', old_date) - 1
     Top10vsGDX    = Top10 - GDX
     Bottom10vsGDX = Bottom10 - GDX
