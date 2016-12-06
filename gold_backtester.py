@@ -108,8 +108,8 @@ for date in rebalance_days:
 Top10_total         = reduce(lambda x, y: x * y, (history.loc['Top 10'          ] + 1)) - 1
 Bottom10_total      = reduce(lambda x, y: x * y, (history.loc['Bottom 10'       ] + 1)) - 1
 GDX_total           = reduce(lambda x, y: x * y, (history.loc['GDX'             ] + 1)) - 1
-Top10vsGDX_total    = reduce(lambda x, y: x * y, (history.loc['Top 10 vs GDX'   ] + 1)) - 1
-Bottom10vsGDX_total = reduce(lambda x, y: x * y, (history.loc['Bottom 10 vs GDX'] + 1)) - 1
+Top10vsGDX_total    = Top10_total - GDX_total
+Bottom10vsGDX_total = Bottom10_total - GDX_total
 
 history['Totals'] = [Top10_total, Bottom10_total, GDX_total, Top10vsGDX_total, Bottom10vsGDX_total]
 
