@@ -15,7 +15,7 @@ SIGNALS_PATH    = 'signals/signal_data.csv'
 OUTPUT_PATH     = 'output/'
 
 # Parameters
-REBAL_PERIOD    = 'W'                       # Time between rebalance, D - Daily, W - Weekly, M - Monthly, Q - Quarterly
+REBAL_PERIOD    = 'D'                       # Time between rebalance, D - Daily, W - Weekly, M - Monthly, Q - Quarterly
 # TODO: Remove two unused parameters below
 START_BALANCE   = 100000.                   # Starting cash balance in portfolio
 MARGIN_PERCENT  = 100.                      # The margin account size as a percent of account value
