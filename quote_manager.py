@@ -1,5 +1,6 @@
 import sqlite3 as lite
 from pandas import DataFrame, read_sql_query
+import numpy as np
 
 
 class QuoteManager(object):
@@ -36,14 +37,14 @@ class QuoteManager(object):
         # If there is not quote data for a given symbol return nan
         if symbol == 'ANVGQ':
             self.to_console("Quote data is not available for %s" % symbol)
-            return 'nan'
+            return np.nan
 
         # If there is quote data available for the given date, return it
         if date in self._quotes[symbol][type].index:
             return self._quotes[symbol][type][date]
         else:
             self.to_console("Quote data is not available on %s for %s" % (date, symbol))
-            return 'nan'
+            return np.nan
 
 
 # Used for debugging and development

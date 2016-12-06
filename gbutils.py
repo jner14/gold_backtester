@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 DEBUGGING_STATE = True                     # Whether or not to print debug messages to console
 
@@ -13,9 +13,8 @@ def get_top_gdx(gdx_components, date, quote_manager, exclude_stock=None, count=1
     gdx_refined = gdx_components.copy()
     for symbol in gdx_refined:
         quotes[symbol] = quote_manager.get_quote(symbol, date)
-        if quotes[symbol] == 'nan':
-            #gdx_refined = gdx_refined.drop(i)
-            quotes = quotes.drop(symbol)
+
+    quotes.dropna()
 
     assert exclude_stock is not None, 'Error in get_top_gdx(): exclude_stock is None'
     quotes = quotes[~quotes.index.isin(exclude_stock.index)]
@@ -118,31 +117,67 @@ def get_next_rebal_day(whats_left, period):
     return whats_next
 
 
-# Find rebalance days at a monthly frequency set by period
+# Find rebalance days at a frequency set by period including daily, weekly, monthly, and quarterly
 def get_rebal_days(whats_left, period):
+
+    # If period is not allowed, report and exit
+    if period not in ['D', 'W', 'M', 'Q']:
+        print("REBAL_PERIOD must be D, W, M, or Q.  Received: %s" % period)
+        exit()
+
+    # If period is daily, return all dates
+    if period == 'D':
+        return whats_left
+
     rebalance_days = []
     while whats_left:
 
-        # This loop iterates through signal days until the close of month is reached
-        #   and iterates through months until the period is reached
-        for _ in range(period):
+        # Iterate through days until end of period is reached
+        while True:
 
-            # Iterate through days until end of month is reached
-            while True:
+            # Grab the current date from signal data
+            whats_now = whats_left.pop(0)
 
-                # Grab the next day of signal values
-                whats_now = whats_left.pop(0)
-                year, month = whats_now[:4], whats_now[5:7]
+            # If this is the last day of data, return
+            if len(whats_left) <= 0:
+                return rebalance_days
 
-                # Get month close values by making sure the following day is a new month or year
-                if len(whats_left) <= 0 or year != whats_left[0][:4] or month != whats_left[0][5:7]:
-                    # Then break from intra-month loop
+            # Grab the next date from signal data
+            whats_next = whats_left[0]
+
+            year, month, day = int(whats_now[:4]), int(whats_now[5:7]), int(whats_now[8:])
+            next_year, next_month, next_day = int(whats_next[:4]), int(whats_next[5:7]), int(whats_next[8:])
+            weekday = date(year, month, day).isoweekday()
+            next_weekday = date(next_year, next_month, next_day).isoweekday()
+
+            if period == 'W':
+
+                # If weekday is greater than or equal to next_weekday, then break because it is the end of a week
+                if weekday >= next_weekday:
+                    # Then break from loop
                     break
-    
+
+            elif period == 'M':
+
+                # if the current month is different from the next_month, then break because it is the end of a month
+                if month != next_month:
+                    # Then break from loop
+                    break
+
+            elif period == 'Q':
+
+                # If current month is 3, 6, 9, or 12 and not equal to next_month, then break because it is the end of the quarter
+                if month != next_month and month in [3, 6, 9, 12]:
+                    # Then break from loop
+                    break
+
         # Add to rebalance days
         rebalance_days.append(whats_now)
 
-    return rebalance_days
+        
+    print("get_rebal_days() exited without returning a value.")
+    exit()
+    #return rebalance_days
 
 
 # A class for debug printing
