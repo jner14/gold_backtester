@@ -16,9 +16,6 @@ OUTPUT_PATH     = 'output/'
 
 # Parameters
 REBAL_PERIOD    = 'D'                       # Time between rebalance, D - Daily, W - Weekly, M - Monthly, Q - Quarterly
-# TODO: Remove two unused parameters below
-START_BALANCE   = 100000.                   # Starting cash balance in portfolio
-MARGIN_PERCENT  = 100.                      # The margin account size as a percent of account value
 START_DAY       = '2008_01_02'              # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
 LIST_SIZE       = 10                        # How many companies per list
 DEBUGGING_STATE = True                      # Whether or not to print debug messages to console
