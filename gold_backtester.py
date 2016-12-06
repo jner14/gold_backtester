@@ -16,7 +16,7 @@ OUTPUT_PATH     = 'output/'
 
 # Parameters
 REBAL_PERIOD    = 'M'                   # Time between rebalance, D - Daily, W - Weekly, M - Monthly, Q - Quarterly
-START_DAY       = '2008_01_02'          # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
+START_DAY       = '2016_01_04'          # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
 CMMSSN_SLPPG    = .00005                # Commission and slippage as a percent taken from each rebalance return
 LIST_SIZE       = 10                    # How many companies per list
 DEBUGGING_STATE = True                  # Whether or not to print debug messages to console
