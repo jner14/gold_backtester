@@ -15,7 +15,7 @@ def get_top_gdx(gdx_components, date, quote_manager, exclude_stock=None, count=1
     for symbol in gdx_refined:
         quotes[symbol] = quote_manager.get_quote(symbol, date)
 
-    quotes.dropna()
+    quotes.dropna(inplace=True)
 
     assert exclude_stock is not None, 'Error in get_top_gdx(): exclude_stock is None'
     quotes = quotes[~quotes.index.isin(exclude_stock.index)]
@@ -23,12 +23,12 @@ def get_top_gdx(gdx_components, date, quote_manager, exclude_stock=None, count=1
     top_gdx = pd.DataFrame(index=quotes.index)
     top_gdx["price"] = quotes
 
-    if len(top_gdx) > count:
-        return top_gdx[:count]
-    else:
-        if len(top_gdx) == 0: 
-            dp.to_console("NO VALID GDX COMPONENT STOCK FOUND FOR DATE: %s" % date)
+    if len(top_gdx) == 0:
+        dp.to_console("NO VALID GDX COMPONENT STOCK FOUND FOR DATE: %s" % date)
+    if count == 0:
         return top_gdx
+    else:
+        return top_gdx.head(count)
 
 
 # Get a date based on a given date plus an offset of days

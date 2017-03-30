@@ -21,6 +21,8 @@ CMMSSN_SLPPG    = .00005                # Commission and slippage as a percent t
 LIST_SIZE       = 10                    # How many companies per list
 DEBUGGING_STATE = True                  # Whether or not to print debug messages to console
 TDR_MA          = 10                    # The moving average length for TDR
+MIN_MKT_CAP     = 100                   # Minimum market cap in millions for portfolio companies
+HEDGE_CNT       = 10                    # Number of top companies, based on mkt cap, to include in hedge portfolio
 
 
 # Create debug object
@@ -45,14 +47,18 @@ signals = signals.fillna(0)
 
 # Return date index to string and drop invalid rows
 signals.index = signals.index.strftime('%Y_%m_%d')
-signals.drop("NaT", inplace=True)
+if "NaT" in signals.index:
+    signals.drop("NaT", inplace=True)
 
 # Get signal dates from index
 signal_dates = signals.loc[signals.index >= START_DAY].index
 
-# Load market caps
+# Load market caps, fill nan values with 0, parse dates to desired format and remove NaT rows
 try:
-    mkt_caps = pd.read_csv(MKT_CAPS)
+    mkt_caps = pd.read_csv(MKT_CAPS, index_col=0, parse_dates=True).fillna(0)
+    mkt_caps.index = mkt_caps.index.strftime('%Y_%m_%d')
+    if "NaT" in mkt_caps.index:
+        mkt_caps.drop("NaT", inplace=True)
 except Exception as e:
     print(e)
     print("Failed to load market caps file %s!" % MKT_CAPS)
@@ -61,11 +67,11 @@ except Exception as e:
 # Load GDX component symbols
 try:
     gdx_symbols = pd.read_csv(GDX_CSV_PATH).symbol
+    gdx_symbols = gdx_symbols[gdx_symbols.isin(signals.columns)]
 except Exception as e:
     print(e)
     print("Failed to load gdx symbols file %s!" % GDX_CSV_PATH)
     sys.exit()
-gdx_symbols = gdx_symbols[gdx_symbols.isin(signals.columns)]
 
 # Get month close rebalance days determined by REBAL_PERIOD
 rebalance_days = get_rebal_days(signal_dates, REBAL_PERIOD)
@@ -80,8 +86,14 @@ for date in rebalance_days:
     # Get most stock for current date based on standard deviation of signal values
     longs = get_long_positions(signals, date, TDR_MA, quote_manager)
 
-    # Get Top 10 GDX not included in undervalued list
-    top_gdx = get_top_gdx(gdx_symbols, date, quote_manager, longs)
+    # Filter long positions by mkt cap greater than given parameter
+    longs['mkt_cap'] = mkt_caps.loc[date].squeeze()
+    longs = longs.loc[longs.mkt_cap > MIN_MKT_CAP]
+
+    # Get All GDX not included in undervalued list then keep those with highest mkt_cap
+    top_gdx = get_top_gdx(gdx_symbols, date, quote_manager, exclude_stock=longs, count=0)
+    top_gdx['mkt_cap'] = mkt_caps.loc[date].squeeze()
+    top_gdx = top_gdx.loc[top_gdx.mkt_cap > MIN_MKT_CAP].sort_values('mkt_cap', ascending=False)
 
     # If this is the first date initialize variables and skip rest of loop to next date
     if old_date is None:
