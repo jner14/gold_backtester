@@ -7,7 +7,7 @@ DEBUGGING_STATE = True                     # Whether or not to print debug messa
 
 
 # Get top GDX component stock based on greatest market value but excluding exclude_stock 
-def get_top_gdx(gdx_components, date, quote_manager, exclude_stock=None, count=10):
+def get_top_gdx(gdx_components, date, quote_manager, tdr_ma, mkt_caps, min_mkt_cap, exclude_stock=None, count=0):
 
     # Remove any symbols that don't have quote data available for current date
     quotes = pd.Series()
@@ -20,8 +20,20 @@ def get_top_gdx(gdx_components, date, quote_manager, exclude_stock=None, count=1
     assert exclude_stock is not None, 'Error in get_top_gdx(): exclude_stock is None'
     quotes = quotes[~quotes.index.isin(exclude_stock.index)]
 
-    top_gdx = pd.DataFrame(index=quotes.index)
-    top_gdx["price"] = quotes
+    top_gdx = pd.DataFrame()
+    top_gdx["close"] = quotes
+
+    # Filter out companies with mkt cap lower than min_mkt_cap
+    top_gdx['mkt_cap'] = mkt_caps.loc[date].squeeze()
+    top_gdx = top_gdx.loc[top_gdx.mkt_cap > min_mkt_cap].sort_values('mkt_cap', ascending=False)
+
+    top_gdx["prevDate"] = [quote_manager.get_prev_date(sym, date) for sym in top_gdx.index]
+    top_gdx["prevClose"] = [quote_manager.get_quote(r.name, r.prevDate) for k, r in top_gdx.iterrows()]
+    top_gdx["atr"] = [quote_manager.get_atr(sym, date, tdr_ma) for sym in top_gdx.index]
+    top_gdx["vol"] = top_gdx.atr / top_gdx.close
+    top_gdx["vol"] = top_gdx.vol / top_gdx.vol.sum()
+    top_gdx["posSize"] = 1 / (top_gdx.vol * 100)
+    top_gdx["posSize"] = top_gdx.posSize / top_gdx.posSize.sum()
 
     if len(top_gdx) == 0:
         dp.to_console("NO VALID GDX COMPONENT STOCK FOUND FOR DATE: %s" % date)
@@ -40,7 +52,7 @@ def get_date_offset(start_date = '2008_02_29', offset = -20):
     return new_date.strftime('%Y_%m_%d')
 
 
-def get_long_positions(signals, date, tdr_ma, quote_manager):
+def get_long_positions(signals, date, tdr_ma, mkt_caps, min_mkt_cap, quote_manager):
     """
     Uses TDR as a measure volatility to weight positions with a positive signal value.
     :param signals: A DataFrame of signal values where positive values may indicate a good long position
@@ -51,24 +63,27 @@ def get_long_positions(signals, date, tdr_ma, quote_manager):
     """
     # Get positive signals for the date
     daysSignals = signals.loc[date].squeeze()
-    values = pd.DataFrame()
-    values["signals"] = daysSignals.loc[daysSignals > 0]
-    values["prevDate"] = [quote_manager.get_prev_date(sym, date) for sym in values.index]
-    values["prevClose"] = [quote_manager.get_quote(r.name, r.prevDate) for k, r in values.iterrows()]
-    values["close"] = [quote_manager.get_quote(sym, date) for sym in values.index]
-    # values["high"] = [quote_manager.get_quote(sym, date, "High") for sym in values.index]
-    # values["low"] = [quote_manager.get_quote(sym, date, "Low") for sym in values.index]
-    values["atr"] = [quote_manager.get_atr(sym, date, tdr_ma) for sym in values.index]
-    values["vol"] = values.atr / values.close
-    values["vol"] = values.vol / values.vol.sum()
-    values["inverseVol"] = 1 / (values.vol * 100)
-    # values["inverseVol"] = -(values.vol - values.vol.min() - values.vol.max())
-    values["inverseVol"] = values.inverseVol / values.inverseVol.sum()
-    values["ranking"] = values.signals / values.signals.sum()
-    values["positionSize"] = values.vol + values.ranking
-    values["positionSize"] = values.positionSize / values.positionSize.sum()
+    longs = pd.DataFrame()
+    longs["signals"] = daysSignals.loc[daysSignals > 0]
 
-    return values
+    # Filter long positions by mkt cap greater than given parameter
+    longs['mkt_cap'] = mkt_caps.loc[date].squeeze()
+    longs = longs.loc[longs.mkt_cap > min_mkt_cap]
+
+    # Calculate position size using volatility (ATR) and signal based rank
+    longs["prevDate"] = [quote_manager.get_prev_date(sym, date) for sym in longs.index]
+    longs["prevClose"] = [quote_manager.get_quote(r.name, r.prevDate) for k, r in longs.iterrows()]
+    longs["close"] = [quote_manager.get_quote(sym, date) for sym in longs.index]
+    longs["atr"] = [quote_manager.get_atr(sym, date, tdr_ma) for sym in longs.index]
+    longs["vol"] = longs.atr / longs.close
+    longs["vol"] = longs.vol / longs.vol.sum()
+    longs["inverseVol"] = 1 / (longs.vol * 100)
+    longs["inverseVol"] = longs.inverseVol / longs.inverseVol.sum()
+    longs["ranking"] = longs.signals / longs.signals.sum()
+    longs["posSize"] = longs.vol + longs.ranking
+    longs["posSize"] = longs.posSize / longs.posSize.sum()
+
+    return longs
 
 
 def tdr(prev_close, high, low):

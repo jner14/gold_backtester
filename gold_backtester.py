@@ -1,14 +1,15 @@
-import pandas as pd
 from gbutils import *
 from quote_manager import QuoteManager
-import matplotlib.pyplot as plt
 import time
 import datetime
 import sys
+import pandas as pd
+
+pd.set_option('display.width', None)
 
 # File Paths
 PICKS_CSV_PATH  = 'symbols/gold_picks.csv'
-GDX_CSV_PATH    = 'symbols/gold_gdx.csv'
+HEDGE_CSV_PATH   = 'symbols/gold_gdx.csv'
 DB_FILEPATH     = 'data/daily_gold.db'
 SIGNALS_PATH    = 'signals/signal_data.csv'
 OUTPUT_PATH     = 'output/'
@@ -29,10 +30,10 @@ HEDGE_CNT       = 10                    # Number of top companies, based on mkt 
 dp = Debug_Printer(DEBUGGING_STATE)
 
 # Create QuoteManager object
-quote_manager = QuoteManager(DB_FILEPATH, dp)
+quoteManager = QuoteManager(DB_FILEPATH, dp)
 
 # Create dataframe to store return values
-history = pd.DataFrame(index=["Longs", "GDX", "Longs vs GDX"])
+history = pd.DataFrame(index=["Long", "GDX", "GDX Weighted", "Longs vs GDX", "Long vs GDX Weighted"])
 
 # Load signals data
 try:
@@ -51,14 +52,14 @@ if "NaT" in signals.index:
     signals.drop("NaT", inplace=True)
 
 # Get signal dates from index
-signal_dates = signals.loc[signals.index >= START_DAY].index
+signalDates = signals.loc[signals.index >= START_DAY].index
 
 # Load market caps, fill nan values with 0, parse dates to desired format and remove NaT rows
 try:
-    mkt_caps = pd.read_csv(MKT_CAPS, index_col=0, parse_dates=True).fillna(0)
-    mkt_caps.index = mkt_caps.index.strftime('%Y_%m_%d')
-    if "NaT" in mkt_caps.index:
-        mkt_caps.drop("NaT", inplace=True)
+    mktCaps = pd.read_csv(MKT_CAPS, index_col=0, parse_dates=True).fillna(0)
+    mktCaps.index = mktCaps.index.strftime('%Y_%m_%d')
+    if "NaT" in mktCaps.index:
+        mktCaps.drop("NaT", inplace=True)
 except Exception as e:
     print(e)
     print("Failed to load market caps file %s!" % MKT_CAPS)
@@ -66,77 +67,69 @@ except Exception as e:
 
 # Load GDX component symbols
 try:
-    gdx_symbols = pd.read_csv(GDX_CSV_PATH).symbol
-    gdx_symbols = gdx_symbols[gdx_symbols.isin(signals.columns)]
+    hedgeSymbols = pd.read_csv(HEDGE_CSV_PATH).symbol
+    hedgeSymbols = hedgeSymbols[hedgeSymbols.isin(signals.columns)]
 except Exception as e:
     print(e)
-    print("Failed to load gdx symbols file %s!" % GDX_CSV_PATH)
+    print("Failed to load gdx symbols file %s!" % HEDGE_CSV_PATH)
     sys.exit()
 
-# Get month close rebalance days determined by REBAL_PERIOD
-rebalance_days = get_rebal_days(signal_dates, REBAL_PERIOD)
+# Get month close re-balance days determined by REBAL_PERIOD
+rebalanceDays = get_rebal_days(signalDates, REBAL_PERIOD)
 
 
-### Iterate through rebalance dates, calculating returns
-old_date = None
-old_top_gdx = None
-old_longs = None
-for date in rebalance_days:
-
-    # Get most stock for current date based on standard deviation of signal values
-    longs = get_long_positions(signals, date, TDR_MA, quote_manager)
-
-    # Filter long positions by mkt cap greater than given parameter
-    longs['mkt_cap'] = mkt_caps.loc[date].squeeze()
-    longs = longs.loc[longs.mkt_cap > MIN_MKT_CAP]
-
-    # Get All GDX not included in undervalued list then keep those with highest mkt_cap
-    top_gdx = get_top_gdx(gdx_symbols, date, quote_manager, exclude_stock=longs, count=0)
-    top_gdx['mkt_cap'] = mkt_caps.loc[date].squeeze()
-    top_gdx = top_gdx.loc[top_gdx.mkt_cap > MIN_MKT_CAP].sort_values('mkt_cap', ascending=False)
-
-    # If this is the first date initialize variables and skip rest of loop to next date
-    if old_date is None:
-        old_date        = date
-        old_longs       = longs
-        old_top_gdx     = top_gdx
+# Iterate through re-balance dates, calculating returns
+for i in range(len(rebalanceDays)):
+    # Skip last days
+    if i != len(rebalanceDays) - 1:
+        dateNow, dateNext = rebalanceDays[i: i + 2]
+    else:
         continue
 
-    all_prices = pd.Series([quote_manager.get_quote(sym, date) for sym in signals.columns], index=signals.columns)
+    # Get picks companies whose signal is positive and mkt cap is > MIN_MKT_CAP using ATR and signal rank
+    longs = get_long_positions(signals, dateNow, TDR_MA, mktCaps, MIN_MKT_CAP, quoteManager)
 
-    longs['new price'] = all_prices
-    old_top_gdx['new price'] = all_prices
+    # Get all hedge companies not included in undervalued list then keep those with mkt_cap over MIN_MKT_CAP
+    gdx = get_top_gdx(hedgeSymbols, dateNow, quoteManager, TDR_MA, mktCaps, MIN_MKT_CAP, longs)
 
-    # Calculate returns, current/old - 1
-    longs['return'] = (all_prices/longs.prevClose - 1).dropna()
-    old_top_gdx['return'] = (all_prices/old_top_gdx.price - 1).dropna()
+    nextPrices = pd.Series([quoteManager.get_quote(sym, dateNext) for sym in signals.columns], index=signals.columns)
+
+    longs['Next Close'] = nextPrices
+    gdx['Next Close'] = nextPrices
+
+    # Calculate returns and weighted returns
+    longs['return'] = (nextPrices / longs.close - 1)  # .dropna()
+    longs['wReturn'] = longs['return'] * longs.posSize
+    gdx['return'] = (nextPrices / gdx.close - 1)  # .dropna()
+    gdx['wReturn'] = gdx['return'] * gdx.posSize
 
     # Print under/over valued lists
-    dp.to_console("\nLong Returns for %s" % date)
-    dp.to_console(old_longs)
-    dp.to_console("\nTop 10 GDX Returns for %s" % date)
-    dp.to_console(old_top_gdx)
+    dp.to_console("\nLong Returns for %s" % dateNow)
+    dp.to_console(longs.drop(['prevDate', 'prevClose'], axis=1))
+    dp.to_console("\nGDX Returns for {}".format(dateNow))
+    dp.to_console(gdx.drop(['prevDate', 'prevClose'], axis=1))
 
     # Save values to history
-    meanLong      = longs['return'].mean()
-    meanLong     -= abs(meanLong) * CMMSSN_SLPPG
-    GDX           = quote_manager.get_quote('GDX', date) / quote_manager.get_quote('GDX', old_date) - 1
-    LongsvsGDX    = meanLong - GDX
+    longReturn    = longs['wReturn'].sum()
+    longReturn   -= abs(longReturn) * CMMSSN_SLPPG
+    gdxReturn     = gdx['return'].mean()
+    gdxReturn    -= abs(gdxReturn) * CMMSSN_SLPPG
+    gdxWeighted   = gdx['wReturn'].sum()
+    gdxWeighted  -= abs(gdxReturn) * CMMSSN_SLPPG
+    longVsGDX     = longReturn - gdxReturn
+    longVsGDXw    = longReturn - gdxWeighted
 
-    history[date] = [meanLong, GDX, LongsvsGDX]
-
-    # Set new as old for next rebalance
-    old_date = date
-    old_longs = longs
-    old_top_gdx = top_gdx
+    history[dateNow] = [longReturn, gdxReturn, gdxWeighted, longVsGDX, longVsGDXw]
 
 
-# Calculate Returns
-Longs_Total         = reduce(lambda x, y: x * y, (history.loc['Longs'] + 1)) - 1
-GDX_total           = reduce(lambda x, y: x * y, (history.loc['GDX'] + 1)) - 1
-LongsvsGDX_total    = Longs_Total - GDX_total
+# Calculate Returns "GDX Weighted", "Longs vs GDX", "Long vs GDX Weighted"
+longTotal               = reduce(lambda x, y: x * y, (history.loc['Long'] + 1)) - 1
+gdxTotal                = reduce(lambda x, y: x * y, (history.loc['GDX'] + 1)) - 1
+gdxWeightedTotal        = reduce(lambda x, y: x * y, (history.loc['GDX Weighted'] + 1)) - 1
+longVsGdxTotal          = longTotal - gdxTotal
+longVsGdxWeightedTotal  = longTotal - gdxWeightedTotal
 
-history['Totals'] = [Longs_Total, GDX_total, LongsvsGDX_total]
+history['Totals'] = [longTotal, gdxTotal, gdxWeightedTotal, longVsGdxTotal, longVsGdxWeightedTotal]
 
 # Save values to a csv file
 timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('__%Y-%m-%d__%H-%M-%S__'))
@@ -144,8 +137,10 @@ history.to_csv(OUTPUT_PATH + 'history{}.csv'.format(timestamp))
 
 # Print Returns
 dp.to_console("\n\n")
-dp.to_console("Total Longs Return : {0:.2f}%".format(Longs_Total * 100))
-dp.to_console("Total GDX Return   : {0:.2f}%".format(GDX_total*100))
-dp.to_console("Longs vs GDX       : {0:.2f}%".format(LongsvsGDX_total * 100))
+dp.to_console("Total Long Return    : {0:.2f}%".format(longTotal * 100))
+dp.to_console("Total GDX Return     : {0:.2f}%".format(gdxTotal * 100))
+dp.to_console("Total GDX Weighted   : {0:.2f}%".format(gdxWeightedTotal * 100))
+dp.to_console("Longs vs GDX         : {0:.2f}%".format(longVsGdxTotal * 100))
+dp.to_console("Longs vs GDX Weighted: {0:.2f}%".format(longVsGdxWeightedTotal * 100))
 dp.to_console("\n\n")
 print("Finished!")
