@@ -3,9 +3,6 @@ import sqlite3 as lite
 import csv
 import numpy as np
 import random
-#import cPickle
-#import os
-#from datetime import datetime, timedelta
 from pytz import timezone
 
 PICKS_CSV_PATH = 'symbols/gold_picks.csv'
@@ -16,29 +13,35 @@ f = "{:.2f}"
 time_zone = timezone('US/Eastern')
 time_fmt = '%Y-%m-%d %H:%M:%S %Z%z'
 
-def load_tickers( randomize     = False,                    # Should the selction and order be random
-                  ticker_count  = 1,                        # Vaules > 1 are literal, and <= 1 are percent
-                  rand_state    = 0,                        # Can feed a random state value like a seed
-                  validate      = True,                     # Whether or not to validate csv values against db
-                  db_path       = DB_FILEPATH,              # Filepath of db
-                  ticker_path   = PICKS_CSV_PATH,          # Filepath of csv symbols
-                  min_samples   = MIN_STOCK_PRICE_HISTORY   # Min number of rows in db table for the symbol to be included
-                  ):
-    '''Load list of ticker labels from a csv into a list of strings.
+
+def load_tickers(randomize     = False,                    # Should the selction and order be random
+                 ticker_count  = 1,                        # Vaules > 1 are literal, and <= 1 are percent
+                 rand_state    = 0,                        # Can feed a random state value like a seed
+                 validate      = True,                     # Whether or not to validate csv values against db
+                 db_path       = DB_FILEPATH,              # Filepath of db
+                 ticker_path   = PICKS_CSV_PATH,           # Filepath of csv symbols
+                 min_samples   = MIN_STOCK_PRICE_HISTORY   # Min rows in db table for the symbol to be included
+                 ):
+    """
+    Load list of ticker labels from a csv into a list of strings.
     Verifies tables with hard-coded database for length and existance.
     Optional parameter RANDOMIZE will return list randomized.
     Optional parameter TICKER_COUNT will allow a subset of tickers to
-    be loaded.  Values > 1 will be considered literal, and <= 1 will be 
+    be loaded.  Values > 1 will be considered literal, and <= 1 will be
     considered percentage of total tickers in file read.
-    Returns string list of ticker labels and a random number state'''
-    #if rand_state is not an integer, assume it is a 
-    if type(rand_state) != int : random.setstate(rand_state)
-    else: rand_state = random.getstate()
+    Returns string list of ticker labels and a random number state
+    """
+    # if rand_state is not an integer, assume it is a
+    if type(rand_state) != int:
+        random.setstate(rand_state)
+        randSeed = rand_state
+    else:
+        randSeed = random.getstate()
     
-    with open(ticker_path, 'r') as csvfile:
-        lines = csv.reader(csvfile)
+    with open(ticker_path, 'r') as csvFile:
+        lines = csv.reader(csvFile)
         tickers = list(lines)
-        tickers.pop(0)#remove header row
+        tickers.pop(0)  # remove header row
         tickers = np.asarray(tickers).transpose()
         tickers = list(tickers[0])
         
@@ -54,24 +57,28 @@ def load_tickers( randomize     = False,                    # Should the selctio
                         if count < min_samples:
                             print ('Table too short: %s' % t)
                             tickers.remove(t)
-                except:
-                    #print ('Table not found: %s' % t)
+                except Exception as e:
+                    print()
+                    # print ('Table not found: %s' % t)
                     tickers.remove(t)
 
-        #if ticker_count is passed as a < 1 value then convert to percent of all tickers
-        if ticker_count <= 1 and ticker_count > 0: ticker_count = int(ticker_count * len(tickers)+0.5)
+        # if ticker_count is passed as a < 1 value then convert to percent of all tickers
+        if 1 >= ticker_count > 0:
+            ticker_count = int(ticker_count * len(tickers) + 0.5)
 
-        #if randomize then take a random sample ticker_count long  
-        if randomize: tickers2 = random.sample(tickers,ticker_count)
+        # if randomize then take a random sample ticker_count long
+        if randomize:
+            tickers2 = random.sample(tickers,ticker_count)
 
-        #else take a non-random sample starting from begining of list
-        else: tickers2 = tickers[:ticker_count]
+        # else take a non-random sample starting from begining of list
+        else:
+            tickers2 = tickers[:ticker_count]
         
-        return tickers2, rand_state
+        return tickers2, randSeed
 
-## load_tickers() test code, leave commented out
-#test_tickers, rand_state = load_tickers(ticker_path=GDX_CSV_PATH, ticker_count=1)
-#print test_tickers
+# # load_tickers() test code, leave commented out
+# test_tickers, rand_state = load_tickers(ticker_path=GDX_CSV_PATH, ticker_count=1)
+# print test_tickers
 
         
 def check_missing_dates(db_path,ticker,print_res=True):
@@ -84,7 +91,7 @@ def check_missing_dates(db_path,ticker,print_res=True):
     print('%s...'% ticker),
     i = 0
     for i in range(len(t1.date)-1):
-        i -= deleted #adjusts index to account for deleted duplicate quotes
+        i -= deleted  # adjusts index to account for deleted duplicate quotes
         if t1.date[i].isoweekday() == 5: # 5 is friday
             time_delta_int = 3
         else:
@@ -92,7 +99,7 @@ def check_missing_dates(db_path,ticker,print_res=True):
         date1 = t1.date[i] + timedelta(days=time_delta_int)
         year,month,day,dow = date1.year, date1.month, date1.day, date1.isoweekday()
         if date1 != t1.date[i+1]:
-            #check if it's a duplicate entry
+            # check if it's a duplicate entry
             if t1.date[i] == t1.date[i+1]:
                 print('\nFOUND DUPLICATE ENTRY!!')
                 print(t1.get_quote_by_index(i))
@@ -110,34 +117,34 @@ def check_missing_dates(db_path,ticker,print_res=True):
                     elif answer == '3':
                         break
                     else:
-                        print('Your response [%s] was not an option. Try again!'% answer)
+                        print('Your response [%s] was not an option. Try again!' % answer)
                 continue
-            #unless its thanksgiving
-            elif month == 11 and day > 21 and day < 29 and dow == 4:
+            # unless its thanksgiving
+            elif month == 11 and 21 < day < 29 and dow == 4:
                 continue
-            #unless its martin luther king day
-            elif month == 1 and day > 14 and day < 22 and dow == 1:
+            # unless its martin luther king day
+            elif month == 1 and 14 < day < 22 and dow == 1:
                 continue
-            #unless its labor day
-            elif month == 9 and day > 0 and day < 8 and dow == 1:
+            # unless its labor day
+            elif month == 9 and 0 < day < 8 and dow == 1:
                 continue
-            #unless its president's day
-            elif month == 2 and day > 14 and day < 22 and dow == 1:
+            # unless its president's day
+            elif month == 2 and 14 < day < 22 and dow == 1:
                 continue
-            #unless its memorial day
-            elif month == 5 and day > 24 and day < 32 and dow == 1:
+            # unless its memorial day
+            elif month == 5 and 24 < day < 32 and dow == 1:
                 continue
-            #unless its 9-11
+            # unless its 9-11
             elif year == 2001 and month == 9 and day == 11:
                 continue
-            #unless its the 4th of july
-            elif month == 7 and day > 2 and day < 6:
+            # unless its the 4th of july
+            elif month == 7 and 2 < day < 6:
                 continue
-            #unless its new years
-            elif month == 1 and day > 0 and day < 3:
+            # unless its new years
+            elif month == 1 and 0 < day < 3:
                 continue
-            #unless its christmas
-            elif month == 12 and day > 23 and day < 27:
+            # unless its christmas
+            elif month == 12 and 23 < day < 27:
                 continue
             else:
                 missing_int +=1
@@ -311,9 +318,9 @@ def load_obj(name):
 
 
 if __name__ == '__main__':
-    db_path = 'data/daily_gold.db'
-    ticker_path1 = 'symbols/gold_picks.csv'
-    ticker_path2 = 'symbols/gold_gdx.csv'
+    dbPath = 'data/daily_gold.db'
+    tickerPath1 = 'symbols/gold_picks.csv'
+    tickerPath2 = 'symbols/gold_gdx.csv'
 
-    picks, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=ticker_path1, min_samples=1)
-    gdx, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=ticker_path2, min_samples=1)
+    picks, randState = load_tickers(validate=False, db_path=db_path, ticker_path=ticker_path1, min_samples=1)
+    gdx, randState = load_tickers(validate=False, db_path=db_path, ticker_path=ticker_path2, min_samples=1)

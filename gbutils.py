@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from datetime import date, datetime, timedelta
+from datetime import date as dt_date, datetime, timedelta
+import sys
 
 DEBUGGING_STATE = True                     # Whether or not to print debug messages to console
 
@@ -34,29 +35,74 @@ def get_top_gdx(gdx_components, date, quote_manager, exclude_stock=None, count=1
 def get_date_offset(start_date = '2008_02_29', offset = -20):
     delta = timedelta(days = offset)
     year, month, day = start_date.split('_')
-    start = date(int(year), int(month), int(day))
+    start = dt_date(int(year), int(month), int(day))
     new_date = start + delta
     return new_date.strftime('%Y_%m_%d')
 
 
-# Get undervalued stock based on lowest signal value for a given date
+def get_long_positions(signals, date, tdr_ma, quote_manager):
+    """
+    Uses TDR as a measure volatility to weight positions with a positive signal value.
+    :param signals: A DataFrame of signal values where positive values may indicate a good long position
+    :param date: The date in question, necessary in order to load price quotes from the database
+    :param quote_manager: A quote manager object allows price quotes to be requested from the database
+    :param tdr_ma: the moving average length of tdr
+    :return: A DataFrame of positions, their prices, and percent portion of portfolio
+    """
+    # Get positive signals for the date
+    daysSignals = signals.loc[date].squeeze()
+    values = pd.DataFrame()
+    values["signals"] = daysSignals.loc[daysSignals > 0]
+    values["prevDate"] = [quote_manager.get_prev_date(sym, date) for sym in values.index]
+    values["prevClose"] = [quote_manager.get_quote(r.name, r.prevDate) for k, r in values.iterrows()]
+    values["close"] = [quote_manager.get_quote(sym, date) for sym in values.index]
+    # values["high"] = [quote_manager.get_quote(sym, date, "High") for sym in values.index]
+    # values["low"] = [quote_manager.get_quote(sym, date, "Low") for sym in values.index]
+    values["atr"] = [quote_manager.get_atr(sym, date, tdr_ma) for sym in values.index]
+    values["vol"] = values.atr / values.close
+    values["vol"] = values.vol / values.vol.sum()
+    values["inverseVol"] = 1 / (values.vol * 100)
+    # values["inverseVol"] = -(values.vol - values.vol.min() - values.vol.max())
+    values["inverseVol"] = values.inverseVol / values.inverseVol.sum()
+    values["ranking"] = values.signals / values.signals.sum()
+    values["positionSize"] = values.vol + values.ranking
+    values["positionSize"] = values.positionSize / values.positionSize.sum()
+
+    return values
+
+
+def tdr(prev_close, high, low):
+    v1 = high - low
+    v2 = abs(high - prev_close)
+    v3 = abs(low - prev_close)
+    return max(v1, v2, v3)
+
+
+def get_undervalued_by_std(signals, date, quote_manager, multiplier):
+    uv = get_valued(signals, date, quote_manager, len(signals), value_type="under")
+    if uv is not None:
+        uv = uv.loc[uv.signal < uv.signal.mean() - multiplier * uv.signal.std()]
+    return uv
+
+
 def get_undervalued(signals, date, quote_manager, count):
-    return get_valued(signals, date, quote_manager, count, type="under")
+    """Get undervalued stock based on lowest signal value for a given date"""
+    return get_valued(signals, date, quote_manager, count, value_type="under")
 
 
-# Get overvalued stock based on highest signal value for a given date
 def get_overvalued(signals, date, quote_manager, count):
-    return get_valued(signals, date, quote_manager, count, type="over")
+    """Get overvalued stock based on highest signal value for a given date"""
+    return get_valued(signals, date, quote_manager, count, value_type="over")
 
 
 # Get over or under valued stock based on highest or lowest signal value for a given date
-def get_valued(signals, date, quote_manager, count, type="under"):
+def get_valued(signals, date, quote_manager, count, value_type="under"):
     """type can be 'under' or 'over'."""
-    
+
     # Grab the signals for the date in question and order them 
-    if type == "over":
+    if value_type == "over":
         day_signals = signals.loc[date.replace('_', '-')].sort_values(ascending=False)
-    elif type == "under":
+    elif value_type == "under":
         day_signals = signals.loc[date.replace('_', '-')].sort_values()
 
     day_signals_no_nans = day_signals.dropna()
@@ -86,10 +132,11 @@ def get_valued(signals, date, quote_manager, count, type="under"):
          
     # TODO: Return top results if not negative or positive? Currently yes.
     if len(combined) > count:
-         return combined[:count]
+        return combined[:count]
+    elif len(combined) <= count:
+        return combined
     else:
-        if len(combined) == 0: 
-            dp.to_console("NO VALID UNDER/OVER VALUED STOCK FOUND FOR DATE: %s" % date)
+        dp.to_console("NO VALID UNDER/OVER VALUED STOCK FOUND FOR DATE: %s" % date)
         return None
 
 
@@ -121,10 +168,12 @@ def get_next_rebal_day(whats_left, period):
 # Find rebalance days at a frequency set by period including daily, weekly, monthly, and quarterly
 def get_rebal_days(whats_left, period):
 
+    whats_left = list(whats_left)
+
     # If period is not allowed, report and exit
     if period not in ['D', 'W', 'M', 'Q']:
         print("REBAL_PERIOD must be D, W, M, or Q.  Received: %s" % period)
-        exit()
+        sys.exit()
 
     # If period is daily, return all dates
     if period == 'D':
@@ -148,8 +197,8 @@ def get_rebal_days(whats_left, period):
 
             year, month, day = int(whats_now[:4]), int(whats_now[5:7]), int(whats_now[8:])
             next_year, next_month, next_day = int(whats_next[:4]), int(whats_next[5:7]), int(whats_next[8:])
-            weekday = date(year, month, day).isoweekday()
-            next_weekday = date(next_year, next_month, next_day).isoweekday()
+            weekday = dt_date(year, month, day).isoweekday()
+            next_weekday = dt_date(next_year, next_month, next_day).isoweekday()
 
             if period == 'W':
 
