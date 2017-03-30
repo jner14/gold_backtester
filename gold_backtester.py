@@ -4,6 +4,7 @@ import time
 import datetime
 import sys
 import pandas as pd
+import os
 
 pd.set_option('display.width', None)
 
@@ -12,7 +13,7 @@ PICKS_CSV_PATH  = 'symbols/gold_picks.csv'
 HEDGE_CSV_PATH   = 'symbols/gold_gdx.csv'
 DB_FILEPATH     = 'data/daily_gold.db'
 SIGNALS_PATH    = 'signals/signal_data.csv'
-OUTPUT_PATH     = 'output/'
+OUTPUT_PATH     = 'output'
 MKT_CAPS        = 'data/mkt cap.csv'
 
 # Parameters
@@ -126,14 +127,16 @@ for i in range(len(rebalanceDays)):
 longTotal               = reduce(lambda x, y: x * y, (history.loc['Long'] + 1)) - 1
 gdxTotal                = reduce(lambda x, y: x * y, (history.loc['GDX'] + 1)) - 1
 gdxWeightedTotal        = reduce(lambda x, y: x * y, (history.loc['GDX Weighted'] + 1)) - 1
-longVsGdxTotal          = longTotal - gdxTotal
-longVsGdxWeightedTotal  = longTotal - gdxWeightedTotal
+longVsGdxTotal          = reduce(lambda x, y: x * y, (history.loc['Longs vs GDX'] + 1)) - 1
+longVsGdxWeightedTotal  = reduce(lambda x, y: x * y, (history.loc['Long vs GDX Weighted'] + 1)) - 1
 
 history['Totals'] = [longTotal, gdxTotal, gdxWeightedTotal, longVsGdxTotal, longVsGdxWeightedTotal]
 
 # Save values to a csv file
+if not os.path.exists(OUTPUT_PATH):
+    os.makedirs(OUTPUT_PATH)
 timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('__%Y-%m-%d__%H-%M-%S__'))
-history.to_csv(OUTPUT_PATH + 'history{}.csv'.format(timestamp))
+history.to_csv(OUTPUT_PATH + '/history{}.csv'.format(timestamp))
 
 # Print Returns
 dp.to_console("\n\n")
