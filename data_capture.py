@@ -415,7 +415,7 @@ if __name__ == '__main__':
     # Load tickers from file
     picks_tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=picks_path, min_samples=1)
     gdx_tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=gdx_path, min_samples=1)
-    all_tickers = set(picks_tickers + gdx_tickers + ['SPY', 'GDX'])
+    all_tickers = set(picks_tickers + gdx_tickers + ['SPY', 'GDX', 'GLD'])
 
     # Download quotes then either update or create tables in db
     print("Downloading Stock Prices!")

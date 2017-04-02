@@ -20,11 +20,9 @@ MKT_CAPS        = 'data/mkt cap.csv'
 REBAL_PERIOD    = 'W'                   # Time between rebalance, D - Daily, W - Weekly, M - Monthly, Q - Quarterly
 START_DAY       = '2008_01_02'          # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
 CMMSSN_SLPPG    = .00005                # Commission and slippage as a percent taken from each rebalance return
-LIST_SIZE       = 10                    # How many companies per list
 DEBUGGING_STATE = True                  # Whether or not to print debug messages to console
 TDR_MA          = 10                    # The moving average length for TDR
 MIN_MKT_CAP     = 100                   # Minimum market cap in millions for portfolio companies
-HEDGE_CNT       = 10                    # Number of top companies, based on mkt cap, to include in hedge portfolio
 
 
 # Create debug object
@@ -34,7 +32,13 @@ dp = Debug_Printer(DEBUGGING_STATE)
 quoteManager = QuoteManager(DB_FILEPATH, dp)
 
 # Create dataframe to store return values
-history = pd.DataFrame(index=["Long", "GDX", "GDX Weighted", "Longs vs GDX", "Long vs GDX Weighted"])
+history = pd.DataFrame(index=["Long",
+                              "GDX",
+                              "GLD",
+                              "Longs vs GDX",
+                              "Longs vs GLD",
+                              "Long vs GDX Weighted",
+                              "Long vs GLD Weighted"])
 
 # Load signals data
 try:
@@ -90,47 +94,62 @@ for i in range(len(rebalanceDays)):
     # Get picks companies whose signal is positive and mkt cap is > MIN_MKT_CAP using ATR and signal rank
     longs = get_long_positions(signals, dateNow, TDR_MA, mktCaps, MIN_MKT_CAP, quoteManager)
 
-    # Get all hedge companies not included in undervalued list then keep those with mkt_cap over MIN_MKT_CAP
-    gdx = get_top_gdx(hedgeSymbols, dateNow, quoteManager, TDR_MA, mktCaps, MIN_MKT_CAP, longs)
+    # # Get all hedge companies not included in undervalued list then keep those with mkt_cap over MIN_MKT_CAP
+    # gdx = get_top_gdx(hedgeSymbols, dateNow, quoteManager, TDR_MA, mktCaps, MIN_MKT_CAP, longs)
 
-    nextPrices = pd.Series([quoteManager.get_quote(sym, dateNext) for sym in signals.columns], index=signals.columns)
+    nextSignalPrices = pd.Series([quoteManager.get_quote(sym, dateNext) for sym in signals.columns],
+                                 index=signals.columns)
 
-    longs['Next Close'] = nextPrices
-    gdx['Next Close'] = nextPrices
+    # Get hedge quotes
+    thisGDXPrice = quoteManager.get_quote('GDX', dateNow)
+    thisGLDPrice = quoteManager.get_quote('GLD', dateNow)
+    nextGDXPrice = quoteManager.get_quote('GDX', dateNext)
+    nextGLDPrice = quoteManager.get_quote('GLD', dateNext)
 
-    # Calculate returns and weighted returns
-    longs['return'] = (nextPrices / longs.close - 1)  # .dropna()
+    # Get portfolio vs hedge weights  1 / (longs.vol * 100)
+    pfVola      = 1 / ((longs.atr / longs.close).mean() * 100)
+    gdxVola     = 1 / ((quoteManager.get_atr('GDX', dateNow, TDR_MA) / thisGDXPrice) * 100)
+    gldVola     = 1 / ((quoteManager.get_atr('GLD', dateNow, TDR_MA) / thisGLDPrice) * 100)
+    longGdxWt   = pfVola / (gdxVola + pfVola)
+    longGldWt   = pfVola / (gldVola + pfVola)
+    gdxWt       = 1 - longGdxWt
+    gldWt       = 1 - longGldWt
+
+    # Calculate returns
+    longs['nextClose'] = nextSignalPrices
+    longs['return'] = nextSignalPrices / longs.close - 1
     longs['wReturn'] = longs['return'] * longs.posSize
-    gdx['return'] = (nextPrices / gdx.close - 1)  # .dropna()
-    gdx['wReturn'] = gdx['return'] * gdx.posSize
 
-    # Print under/over valued lists
+    # Print portfolio and hedge returns
     dp.to_console("\nLong Returns for %s" % dateNow)
     dp.to_console(longs.drop(['prevDate', 'prevClose'], axis=1))
-    dp.to_console("\nGDX Returns for {}".format(dateNow))
-    dp.to_console(gdx.drop(['prevDate', 'prevClose'], axis=1))
 
-    # Save values to history
+    # Finish calculating returns and then save values to history
     longReturn    = longs['wReturn'].sum()
     longReturn   -= abs(longReturn) * CMMSSN_SLPPG
-    gdxReturn     = gdx['return'].mean()
+    gdxReturn     = nextGDXPrice / thisGDXPrice - 1
     gdxReturn    -= abs(gdxReturn) * CMMSSN_SLPPG
-    gdxWeighted   = gdx['wReturn'].sum()
-    gdxWeighted  -= abs(gdxReturn) * CMMSSN_SLPPG
+    gldReturn     = nextGLDPrice / thisGLDPrice - 1
+    gldReturn    -= abs(gldReturn) * CMMSSN_SLPPG
     longVsGDX     = longReturn - gdxReturn
-    longVsGDXw    = longReturn - gdxWeighted
+    longVsGLD     = longReturn - gldReturn
+    longVsGDXw    = longGdxWt * longReturn - gdxWt * gdxReturn
+    longVsGLDw    = longGldWt * longReturn - gldWt * gdxReturn
 
-    history[dateNow] = [longReturn, gdxReturn, gdxWeighted, longVsGDX, longVsGDXw]
+    history[dateNow] = [longReturn, gdxReturn, gldReturn, longVsGDX, longVsGLD, longVsGDXw, longVsGLDw]
 
 
 # Calculate Returns "GDX Weighted", "Longs vs GDX", "Long vs GDX Weighted"
 longTotal               = reduce(lambda x, y: x * y, (history.loc['Long'] + 1)) - 1
 gdxTotal                = reduce(lambda x, y: x * y, (history.loc['GDX'] + 1)) - 1
-gdxWeightedTotal        = reduce(lambda x, y: x * y, (history.loc['GDX Weighted'] + 1)) - 1
+gldTotal                = reduce(lambda x, y: x * y, (history.loc['GLD'] + 1)) - 1
 longVsGdxTotal          = reduce(lambda x, y: x * y, (history.loc['Longs vs GDX'] + 1)) - 1
+longVsGldTotal          = reduce(lambda x, y: x * y, (history.loc['Longs vs GLD'] + 1)) - 1
 longVsGdxWeightedTotal  = reduce(lambda x, y: x * y, (history.loc['Long vs GDX Weighted'] + 1)) - 1
+longVsGldWeightedTotal  = reduce(lambda x, y: x * y, (history.loc['Long vs GLD Weighted'] + 1)) - 1
 
-history['Totals'] = [longTotal, gdxTotal, gdxWeightedTotal, longVsGdxTotal, longVsGdxWeightedTotal]
+history['Totals'] = [longTotal, gdxTotal, gldTotal, longVsGdxTotal, longVsGldTotal,
+                     longVsGdxWeightedTotal, longVsGldWeightedTotal]
 
 # Save values to a csv file
 if not os.path.exists(OUTPUT_PATH):
@@ -142,8 +161,10 @@ history.to_csv(OUTPUT_PATH + '/history{}.csv'.format(timestamp))
 dp.to_console("\n\n")
 dp.to_console("Total Long Return    : {0:.2f}%".format(longTotal * 100))
 dp.to_console("Total GDX Return     : {0:.2f}%".format(gdxTotal * 100))
-dp.to_console("Total GDX Weighted   : {0:.2f}%".format(gdxWeightedTotal * 100))
+dp.to_console("Total GLD Return     : {0:.2f}%".format(gldTotal * 100))
 dp.to_console("Longs vs GDX         : {0:.2f}%".format(longVsGdxTotal * 100))
+dp.to_console("Longs vs GLD         : {0:.2f}%".format(longVsGldTotal * 100))
 dp.to_console("Longs vs GDX Weighted: {0:.2f}%".format(longVsGdxWeightedTotal * 100))
+dp.to_console("Longs vs GLD Weighted: {0:.2f}%".format(longVsGldWeightedTotal * 100))
 dp.to_console("\n\n")
 print("Finished!")
