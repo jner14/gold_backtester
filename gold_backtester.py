@@ -122,7 +122,7 @@ for i in range(len(calcDates)):
     longs['wReturn'] = longs['return'] * longs.posSize
 
     # Print portfolio and hedge returns
-    dp.to_console("\nLong Returns for %s" % dateNow)
+    dp.to_console("\nLong Returns for %s" % dateNext)
     dp.to_console(longs)
 
     # Finish calculating returns and then save values to history
@@ -140,7 +140,7 @@ for i in range(len(calcDates)):
     additions     = concat_str([x for x in longs.index if x not in prevLongs])
     deletions     = concat_str([x for x in prevLongs if x not in longs.index])
 
-    history[dateNow] = [longReturn, gdxReturn, gldReturn, longVsGDX, longVsGLD, longVsGDXw, longVsGLDw, additions, deletions]
+    history[dateNext] = [longReturn, gdxReturn, gldReturn, longVsGDX, longVsGLD, longVsGDXw, longVsGLDw, additions, deletions]
 
 
 # Calculate Returns "GDX Weighted", "Longs vs GDX", "Long vs GDX Weighted"
