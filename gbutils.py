@@ -71,8 +71,6 @@ def get_long_positions(signals, date, tdr_ma, mkt_caps, min_mkt_cap, quote_manag
     longs = longs.loc[longs.mkt_cap > min_mkt_cap]
 
     # Calculate position size using volatility (ATR) and signal based rank
-    longs["prevDate"] = [quote_manager.get_prev_date(sym, date) for sym in longs.index]
-    longs["prevClose"] = [quote_manager.get_quote(r.name, r.prevDate) for k, r in longs.iterrows()]
     longs["close"] = [quote_manager.get_quote(sym, date) for sym in longs.index]
     longs["atr"] = [quote_manager.get_atr(sym, date, tdr_ma) for sym in longs.index]
     longs["vol"] = longs.atr / longs.close
@@ -181,7 +179,7 @@ def get_next_rebal_day(whats_left, period):
 
 
 # Find rebalance days at a frequency set by period including daily, weekly, monthly, and quarterly
-def get_rebal_days(whats_left, period):
+def get_calc_days(whats_left, period):
 
     whats_left = list(whats_left)
 
@@ -240,7 +238,7 @@ def get_rebal_days(whats_left, period):
         rebalance_days.append(whats_now)
 
         
-    print("get_rebal_days() exited without returning a value.")
+    print("get_calc_days() exited without returning a value.")
     exit()
     #return rebalance_days
 
@@ -264,6 +262,14 @@ class Debug_Printer(object):
 # Get change in value
 def get_return(new_value, old_value): 
     return new_value / old_value - 1
+
+
+# Concat list of strings
+def concat_str(str_list, delimiter='\n'):
+    result = ''
+    for string in str_list:
+        result += string + '\n'
+    return result[:-1]
 
 
 # Create debug object

@@ -6,6 +6,8 @@ import sqlite3 as lite
 import urllib
 from datetime import timedelta, date
 from bs4 import BeautifulSoup
+import fix_yahoo_finance as yf
+import sqlite3
 
 
 class Ticker(object):
@@ -407,42 +409,34 @@ if __name__ == '__main__':
     # Run this to update quote database with latest quotes
     from data_processing import load_tickers
 
+    con = sqlite3.connect('data/daily_gold.db')
+
     db_path = 'data/daily_gold.db'
     picks_path = 'symbols/gold_picks.csv'
-    gdx_path = 'symbols/gold_gdx.csv'
-    create_from_scratch = True
+    # gdx_path = 'symbols/gold_gdx.csv'
 
     # Load tickers from file
     picks_tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=picks_path, min_samples=1)
-    gdx_tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=gdx_path, min_samples=1)
-    all_tickers = set(picks_tickers + gdx_tickers + ['SPY', 'GDX', 'GLD'])
+    # gdx_tickers, rand_state = load_tickers(validate=False, db_path=db_path, ticker_path=gdx_path, min_samples=1)
+    all_tickers = list(set(picks_tickers + ['SPY', 'GDX', 'GLD']))
+    # all_tickers = ['SPY', 'GDX', 'GLD']
 
-    # Download quotes then either update or create tables in db
-    print("Downloading Stock Prices!")
-    for t in all_tickers:
+    # Download quotes
+    print("Downloading historical data...")
+    data_panel = yf.download(tickers=all_tickers,
+                             start='2008-01-01',  # '2007-09-23'  '2016-11-1'
+                             end=datetime.datetime.now().strftime('%Y-%m-%d'))
 
-        # create ticker DailyQuotes object and download quotes
-        t1 = DailyQuotes(symbol     = t,
-                         start_date = '2007-01-01',  # '2007-09-23'  '2016-11-1'
-                         db_path    = db_path)
+    # Update database
+    print("Recreating database tables...")
+    print('TICKER\t\tBARS')
+    for symbol in data_panel.minor_axis:
+        df = data_panel.minor_xs(symbol).dropna()
+        print('%s%s%s' % (symbol, '\t\t', len(df)))
+        df.columns = ["Adj_Close" if "Adj" in x else x for x in df.columns]
+        df['Datetime'] = df.index
+        df.index = range(len(df))
+        df['Datetime'] = df['Datetime'].apply(lambda x: x.strftime('%Y_%m_%d'))
+        df.to_sql(name=symbol, con=con, if_exists='replace', index=False)
 
-        print("%s: %s" % (t, len(t1.date)))
-
-        # If quotes were downloaded for the given ticker, create or update the ticker's db table
-        if len(t1.date) > 1:
-            if create_from_scratch:
-                t1.overwrite_db()
-                print("Table %s has been deleted and recreated in database %s." % (t, db_path))
-            else:
-                try:
-                    t1.update_db()
-                    print("Table %s has been updated in database %s." % (t, db_path))
-                except:
-                    t1.overwrite_db()
-                    print("Table %s has been created in database %s." % (t, db_path))
-
-    ### A DailyQuotes object downloads quote data from yahoo during init
-    ##t1 = DailyQuotes('SPY','2007-01-01')
-    ##t1.overwrite_db()
-
-    print("DONE")
+    print("FINISHED")

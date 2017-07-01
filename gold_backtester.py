@@ -10,20 +10,18 @@ pd.set_option('display.width', None)
 
 # File Paths
 PICKS_CSV_PATH  = 'symbols/gold_picks.csv'
-HEDGE_CSV_PATH   = 'symbols/gold_gdx.csv'
 DB_FILEPATH     = 'data/daily_gold.db'
 SIGNALS_PATH    = 'signals/signal_data.csv'
 OUTPUT_PATH     = 'output'
 MKT_CAPS        = 'data/mkt cap.csv'
 
 # Parameters
-REBAL_PERIOD    = 'W'                   # Time between rebalance, D - Daily, W - Weekly, M - Monthly, Q - Quarterly
-START_DAY       = '2008_01_02'          # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
+REBAL_PERIOD    = 'M'                   # Time between rebalance, D - Daily, W - Weekly, M - Monthly, Q - Quarterly
+START_DAY       = '2008_02_02'          # Day of initial stock purchases  'YYYY_MM_DD' ex '2016_01_04' '2008_01_02'
 CMMSSN_SLPPG    = .00005                # Commission and slippage as a percent taken from each rebalance return
 DEBUGGING_STATE = True                  # Whether or not to print debug messages to console
 TDR_MA          = 10                    # The moving average length for TDR
 MIN_MKT_CAP     = 100                   # Minimum market cap in millions for portfolio companies
-
 
 # Create debug object
 dp = Debug_Printer(DEBUGGING_STATE)
@@ -38,8 +36,9 @@ history = pd.DataFrame(index=["Long",
                               "Longs vs GDX",
                               "Longs vs GLD",
                               "Long vs GDX Weighted",
-                              "Long vs GLD Weighted"])
-
+                              "Long vs GLD Weighted",
+                              "Portfolio Additions",
+                              "Portfolio Deletions"])
 # Load signals data
 try:
     signals = pd.read_csv(SIGNALS_PATH, index_col=0, parse_dates=True)
@@ -70,32 +69,33 @@ except Exception as e:
     print("Failed to load market caps file %s!" % MKT_CAPS)
     sys.exit()
 
-# Load GDX component symbols
-try:
-    hedgeSymbols = pd.read_csv(HEDGE_CSV_PATH).symbol
-    hedgeSymbols = hedgeSymbols[hedgeSymbols.isin(signals.columns)]
-except Exception as e:
-    print(e)
-    print("Failed to load gdx symbols file %s!" % HEDGE_CSV_PATH)
-    sys.exit()
+# Get re-balance dates with a period equal to REBAL_PERIOD
+rebalDates = get_calc_days(signalDates, REBAL_PERIOD)
 
-# Get month close re-balance days determined by REBAL_PERIOD
-rebalanceDays = get_rebal_days(signalDates, REBAL_PERIOD)
+# Get calculation days which are daily market days
+calcDates = get_calc_days(signalDates, 'D')
 
+longs = None
+prevLongs = []
 
 # Iterate through re-balance dates, calculating returns
-for i in range(len(rebalanceDays)):
+for i in range(len(calcDates)):
     # Skip last days
-    if i != len(rebalanceDays) - 1:
-        dateNow, dateNext = rebalanceDays[i: i + 2]
+    if i != len(calcDates) - 1:
+        dateNow, dateNext = calcDates[i: i + 2]
     else:
         continue
 
-    # Get picks companies whose signal is positive and mkt cap is > MIN_MKT_CAP using ATR and signal rank
-    longs = get_long_positions(signals, dateNow, TDR_MA, mktCaps, MIN_MKT_CAP, quoteManager)
+    # Keep prevLongs to track changes in portfolio companies
+    if longs is not None:
+        prevLongs = longs.index
 
-    # # Get all hedge companies not included in undervalued list then keep those with mkt_cap over MIN_MKT_CAP
-    # gdx = get_top_gdx(hedgeSymbols, dateNow, quoteManager, TDR_MA, mktCaps, MIN_MKT_CAP, longs)
+    # Get picks companies whose signal is positive and mkt cap is > MIN_MKT_CAP using ATR and signal rank
+    # If the current date is a re-balance date then re-balance
+    if calcDates[i] in rebalDates or i == 0:
+        longs = get_long_positions(signals, dateNow, TDR_MA, mktCaps, MIN_MKT_CAP, quoteManager)
+    else:
+        longs.close = [quoteManager.get_quote(sym, dateNow) for sym in longs.index]
 
     nextSignalPrices = pd.Series([quoteManager.get_quote(sym, dateNext) for sym in signals.columns],
                                  index=signals.columns)
@@ -107,13 +107,14 @@ for i in range(len(rebalanceDays)):
     nextGLDPrice = quoteManager.get_quote('GLD', dateNext)
 
     # Get portfolio vs hedge weights  1 / (longs.vol * 100)
-    pfVola      = 1 / ((longs.atr / longs.close).mean() * 100)
-    gdxVola     = 1 / ((quoteManager.get_atr('GDX', dateNow, TDR_MA) / thisGDXPrice) * 100)
-    gldVola     = 1 / ((quoteManager.get_atr('GLD', dateNow, TDR_MA) / thisGLDPrice) * 100)
-    longGdxWt   = pfVola / (gdxVola + pfVola)
-    longGldWt   = pfVola / (gldVola + pfVola)
-    gdxWt       = 1 - longGdxWt
-    gldWt       = 1 - longGldWt
+    if calcDates[i] in rebalDates or i == 0:
+        pfVola      = 1 / ((longs.atr / longs.close).mean() * 100)
+        gdxVola     = 1 / ((quoteManager.get_atr('GDX', dateNow, TDR_MA) / thisGDXPrice) * 100)
+        gldVola     = 1 / ((quoteManager.get_atr('GLD', dateNow, TDR_MA) / thisGLDPrice) * 100)
+        longGdxWt   = pfVola / (gdxVola + pfVola)
+        longGldWt   = pfVola / (gldVola + pfVola)
+        gdxWt       = 1 - longGdxWt
+        gldWt       = 1 - longGldWt
 
     # Calculate returns
     longs['nextClose'] = nextSignalPrices
@@ -122,10 +123,11 @@ for i in range(len(rebalanceDays)):
 
     # Print portfolio and hedge returns
     dp.to_console("\nLong Returns for %s" % dateNow)
-    dp.to_console(longs.drop(['prevDate', 'prevClose'], axis=1))
+    dp.to_console(longs)
 
     # Finish calculating returns and then save values to history
     longReturn    = longs['wReturn'].sum()
+    # longReturn    = (longs['return'] * (.5/len(longs))).sum()
     longReturn   -= abs(longReturn) * CMMSSN_SLPPG
     gdxReturn     = nextGDXPrice / thisGDXPrice - 1
     gdxReturn    -= abs(gdxReturn) * CMMSSN_SLPPG
@@ -135,8 +137,10 @@ for i in range(len(rebalanceDays)):
     longVsGLD     = longReturn - gldReturn
     longVsGDXw    = longGdxWt * longReturn - gdxWt * gdxReturn
     longVsGLDw    = longGldWt * longReturn - gldWt * gdxReturn
+    additions     = concat_str([x for x in longs.index if x not in prevLongs])
+    deletions     = concat_str([x for x in prevLongs if x not in longs.index])
 
-    history[dateNow] = [longReturn, gdxReturn, gldReturn, longVsGDX, longVsGLD, longVsGDXw, longVsGLDw]
+    history[dateNow] = [longReturn, gdxReturn, gldReturn, longVsGDX, longVsGLD, longVsGDXw, longVsGLDw, additions, deletions]
 
 
 # Calculate Returns "GDX Weighted", "Longs vs GDX", "Long vs GDX Weighted"
@@ -149,12 +153,12 @@ longVsGdxWeightedTotal  = reduce(lambda x, y: x * y, (history.loc['Long vs GDX W
 longVsGldWeightedTotal  = reduce(lambda x, y: x * y, (history.loc['Long vs GLD Weighted'] + 1)) - 1
 
 history['Totals'] = [longTotal, gdxTotal, gldTotal, longVsGdxTotal, longVsGldTotal,
-                     longVsGdxWeightedTotal, longVsGldWeightedTotal]
+                     longVsGdxWeightedTotal, longVsGldWeightedTotal, '', '']
 
 # Save values to a csv file
 if not os.path.exists(OUTPUT_PATH):
     os.makedirs(OUTPUT_PATH)
-timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('__%Y-%m-%d__%H-%M-%S__'))
+timestamp = str(datetime.datetime.fromtimestamp(time.time()).strftime('__%Y-%m-%d__%H-%M-%S'))
 history.to_csv(OUTPUT_PATH + '/history{}.csv'.format(timestamp))
 
 # Print Returns
